@@ -222,6 +222,10 @@ footer p { margin: 0; }
         <button id="oIsr" aria-pressed="false">Israël</button>
         <button id="oDias" aria-pressed="true">Diaspora</button>
       </div>
+      <div class="seg" role="group" aria-label="Tradition" id="minhag">
+        <button data-m="s" aria-pressed="true">Séfarade</button>
+        <button data-m="a" aria-pressed="false">Ashkénaze</button>
+      </div>
       <div class="seg" role="group" aria-label="Profil" id="profile">
         <button data-p="h" aria-pressed="true">Homme</button>
         <button data-p="f" aria-pressed="false">Femme</button>
@@ -287,7 +291,7 @@ footer p { margin: 0; }
 
   <footer>
     <p>Le jour hébraïque commence la veille au coucher du soleil. Une mitsva « de la nuit » (Séder, bougie de ‘Hanoucca, compte du Omer) s’accomplit donc le soir qui précède la date civile affichée.</p>
-    <p>Liste et numérotation du Rambam (introduction du Michné Torah, texte hébreu de Wikisource via Sefaria). Le classement de chaque mitsva (permanente, selon les circonstances, Terre d’Israël, non applicable sans le Temple…) suit les grandes lignes de la halakha ; sur plusieurs points les décisionnaires divergent. Pour la pratique, consultez votre rav.</p>
+    <p>Liste et numérotation du Rambam (introduction du Michné Torah, texte hébreu de Wikisource via Sefaria). Le classement pratique suit le Choul‘han Aroukh et les décisionnaires séfarades, ou le Rema et la Michna Beroura pour les Ashkénazes, selon le réglage choisi. Cette application ne remplace pas un rav : pour toute question pratique, consultez-le.</p>
   </footer>
 </div>
 
@@ -377,9 +381,9 @@ const M613 = [
 ["A77","X:T","","להקריב המצורע קרבן אחר שיטהר","Pour le lépreux purifié, offrir un sacrifice","Lv 14:10"],
 ["A78","X:T","","לעשר הבהמה","Prélever la dîme du bétail","Lv 27:32"],
 ["A79","C","","לקדש בכור הבהמה הטהורה ולהקריבו","Consacrer le premier-né d’un animal pur","Dt 15:19"],
-["A80","C","m","לפדות בכור אדם","Racheter son fils premier-né (pidyon haben)","Nb 18:15"],
-["A81","C","","לפדות פטר חמור","Racheter le premier-né de l’âne","Ex 34:20"],
-["A82","C","","לערוף פטר חמור","Briser la nuque du premier-né de l’âne non racheté","Ex 13:13"],
+["A80","C","mK","לפדות בכור אדם","Racheter son fils premier-né (pidyon haben)","Nb 18:15"],
+["A81","C","K","לפדות פטר חמור","Racheter le premier-né de l’âne","Ex 34:20"],
+["A82","C","K","לערוף פטר חמור","Briser la nuque du premier-né de l’âne non racheté","Ex 13:13"],
 ["A83","X:T","","להביא כל הקרבנות שיש על האדם בחובה או בנדבה ברגל ראשון שפגע בו","Apporter ses sacrifices obligatoires ou volontaires à la première fête","Dt 12:6"],
 ["A84","X:T","","להקריב כל הקרבנות בבית הבחירה","N’offrir les sacrifices qu’au Temple","Dt 12:14"],
 ["A85","X:T","","להיטפל בהבאת הקרבנות מחוצה לארץ לבית הבחירה","Apporter au Temple les offrandes consacrées hors de la Terre d’Israël","Dt 12:26"],
@@ -409,7 +413,7 @@ const M613 = [
 ["A109","C","","להיות הטהרה מכל הטמאות בטבילה במי מקוה","Se purifier par immersion dans un mikvé","Lv 15:16"],
 ["A110","X:T","","להיות הטהרה מן הצרעת בין צרעת אדם בין צרעת בית בעץ ארז ואיזוב ושני תולעת ושתי ציפורים ומים חיים","Purifier le lépreux avec bois de cèdre, hysope et écarlate","Lv 14:2"],
 ["A111","X:T","","להיות המצורע מגלח כל שערו","Pour le lépreux, raser tous ses poils","Lv 14:9"],
-["A112","X:T","","להיות המצורע ידוע לכל בדברים האמורים בו ״בגדיו יהיו פרמים וראשו יהיה פרע ועל שפם יעטה וטמא טמא יקרא״","Pour le lépreux, se signaler et vivre à l’écart","Lv 13:45"],
+["A112","X:T","","להיות המצורע ידוע לכל בדברים האמורים בו","Pour le lépreux, se signaler et vivre à l’écart","Lv 13:45"],
 ["A113","X:T","","לעשות פרה אדומה להיות אפרה מוכן","Préparer la vache rousse","Nb 19:9"],
 ["A114","X:T","","להיות מעריך אדם נותן דמים הקצובין בפרשה","Donner l’estimation (érekh) fixée par la Torah pour une personne","Lv 27:2"],
 ["A115","X:T","","להיות מעריך בהמה טמאה נותן דמיה","Donner la valeur d’un animal impur consacré","Lv 27:11"],
@@ -421,14 +425,14 @@ const M613 = [
 ["A121","I","","להניח לקט","Laisser les épis tombés (léket)","Lv 19:9"],
 ["A122","I","","להניח עומר השכחה","Laisser la gerbe oubliée (chikh‘ha)","Dt 24:19"],
 ["A123","I","","להניח עוללות בכרם","Laisser les grappes incomplètes (‘olelot)","Lv 19:10"],
-["A124","I","","להניח פרט הכרם לפי שבכל אלו נאמר ״לעני ולגר תעזב אתם״","Laisser les grains de raisin tombés (péret)","Lv 19:10"],
+["A124","I","","להניח פרט הכרם","Laisser les grains de raisin tombés (péret)","Lv 19:10"],
 ["A125","X:T","","להביא ביכורים לבית הבחירה","Apporter les prémices au Temple (bikkourim)","Ex 34:26"],
 ["A126","I","","להפריש תרומה גדולה לכהן","Prélever la grande térouma pour le cohen","Dt 18:4"],
 ["A127","I","","להפריש מעשר דגן ללוים","Prélever la première dîme pour le Lévite","Lv 27:30"],
 ["A128","I","","להפריש מעשר שני להיאכל לבעליו בירושלים","Prélever la deuxième dîme (ma‘asser chéni)","Dt 14:22"],
 ["A129","I","","להיות הלוים מפרישין מעשר מן המעשר שלקחו מישראל ונותנין אותו לכהנים","Pour le Lévite, prélever la dîme de la dîme pour le cohen","Nb 18:26"],
 ["A130","I","","להפריש מעשר עני תחת מעשר שני בשלישית ובשישית בשבוע","Prélever la dîme du pauvre les 3e et 6e années","Dt 14:28"],
-["A131","I","","להתוודות וידוי מעשר","Faire la déclaration des dîmes (vidouï ma‘asser)","Dt 26:13"],
+["A131","D","","להתוודות וידוי מעשר","Faire la déclaration des dîmes (vidouï ma‘asser)","Dt 26:13"],
 ["A132","X:T","","לקרות על הביכורים","Réciter la déclaration des prémices","Dt 26:5"],
 ["A133","C","","להפריש חלה לכוהן","Prélever la ‘hala sur la pâte","Nb 15:20"],
 ["A134","S","","להשמיט קרקע","Laisser la terre en repos l’année de chemita","Ex 23:11"],
@@ -438,8 +442,8 @@ const M613 = [
 ["A138","X:Y","","ליתן גאולה לארץ בשנת היובל","Rendre les terres au jubilé","Lv 25:24"],
 ["A139","X:Y","","להיות גאולה בבתי ערי חומה עד שנה","Permettre le rachat d’une maison de ville fortifiée pendant un an","Lv 25:29"],
 ["A140","X:J","","למנות שני יובל שנים ושמיטים","Compter les années de chemita et de jubilé","Lv 25:8"],
-["A141","S","g","להשמיט כספים בשביעית","Annuler les dettes à la fin de l’année de chemita","Dt 15:2"],
-["A142","S","g","לנגוש לנוכרי","Pouvoir réclamer une dette à un non-Juif pendant la chemita","Dt 15:3"],
+["A141","D","","להשמיט כספים בשביעית","Annuler les dettes à la fin de l’année de chemita","Dt 15:2"],
+["A142","C","","לנגוש לנוכרי","Pouvoir réclamer une dette à un non-Juif pendant la chemita","Dt 15:3"],
 ["A143","C","","ליתן מן הבהמה לכוהן הזרוע והלחיים והקיבה","Donner au cohen l’épaule, les joues et la caillette","Dt 18:3"],
 ["A144","C","","ליתן ראשית הגז לכוהן","Donner au cohen les prémices de la tonte","Dt 18:4"],
 ["A145","C","","לדון בדיני חרמים, מהם לה' ומהם לכוהן","Juger des biens voués par ‘hérem","Lv 27:28"],
@@ -475,7 +479,7 @@ const M613 = [
 ["A175","C","","לנטות אחרי רבים אם תהיה מחלוקת בין הסנהדרין בדינין","Suivre la majorité en cas de divergence entre les sages","Ex 23:2"],
 ["A176","C","","למנות שופטים ושוטרים בכל קהל וקהל מישראל","Nommer des juges et des officiers dans chaque communauté","Dt 16:18"],
 ["A177","C","","להשוות בין בעלי דינין בשעה שעומדין בדין","Pour le juge, traiter les parties à égalité","Lv 19:15"],
-["A178","C","","להעיד בבית דין למי שיש לו עדות","Témoigner au tribunal quand on sait quelque chose","Lv 5:1"],
+["A178","C","m","להעיד בבית דין למי שיש לו עדות","Témoigner au tribunal quand on sait quelque chose","Lv 5:1"],
 ["A179","X:J","","לחקור העדים הרבה","Interroger minutieusement les témoins","Dt 13:15"],
 ["A180","X:J","","לעשות לעדים זוממין כמו שזממו לעשות","Infliger aux faux témoins la peine qu’ils voulaient faire subir","Dt 19:19"],
 ["A181","X:J","","לערוף את העגלה כמצותה","Briser la nuque de la génisse pour un meurtre non élucidé (‘egla ‘aroufa)","Dt 21:4"],
@@ -699,7 +703,7 @@ const M613 = [
 ["L151","X:T","","שלא לאכול מעשר שני באנינות","Ne pas manger la deuxième dîme en période de deuil","Dt 26:14"],
 ["L152","X:T","","שלא להוציא דמי מעשר שני בשאר דברים שאין בהם אכילה ושתייה","Ne pas dépenser l’argent de la deuxième dîme hors nourriture et boisson","Dt 26:14"],
 ["L153","P","","שלא לאכול הטבל","Ne pas manger de produit non prélevé (tével)","Lv 22:15"],
-["L154","I","","שלא להקדים תרומה לביכורים, ולא מעשר ראשון לתרומה, ולא מעשר שני לראשון, אלא מוציאין על הסדר: .ביכורים תחילה,…","Ne pas inverser l’ordre des prélèvements","Ex 22:28"],
+["L154","I","","שלא להקדים תרומה לביכורים ולא מעשר ראשון לתרומה ולא מעשר שני לראשון","Ne pas inverser l’ordre des prélèvements","Ex 22:28"],
 ["L155","X:T","","שלא לאחר הנדרים והנדבות שנדר ושנדב","Ne pas tarder à apporter les offrandes promises","Dt 23:22"],
 ["L156","X:T","","שלא לעלות לחג בלא קרבן","Ne pas monter au Temple aux fêtes sans offrande","Ex 23:15"],
 ["L157","P","","שלא לעבור על דברים שאסר אדם על נפשו","Ne pas manquer à sa parole ni à un vœu","Nb 30:3"],
@@ -775,8 +779,8 @@ const M613 = [
 ["L227","X:Y","","שלא למכור שדה בארץ ישראל לצמיתות","Ne pas vendre un champ de la Terre d’Israël à perpétuité","Lv 25:23"],
 ["L228","X:Y","","שלא לשנות מגרשי הלויים ושדותיהם","Ne pas changer l’usage des terrains des Lévites","Lv 25:34"],
 ["L229","I","","שלא לעזוב הלויים","Ne pas délaisser les Lévites","Dt 12:19"],
-["L230","S","g","שלא יתבע הלוואה שעברה עליה שביעית","Ne pas réclamer une dette annulée par la chemita","Dt 15:2"],
-["L231","S","g","שלא יימנע מלהלוות לעני מפני השמיטה","Ne pas refuser de prêter au pauvre à l’approche de la chemita","Dt 15:9"],
+["L230","C","","שלא יתבע הלוואה שעברה עליה שביעית","Ne pas réclamer une dette annulée par la chemita, une fois l’année terminée","Dt 15:2"],
+["L231","C","","שלא יימנע מלהלוות לעני מפני השמיטה","Ne pas refuser de prêter au pauvre à l’approche de la chemita","Dt 15:9"],
 ["L232","C","","שלא יימנע מלהחיות לעני ומליתן לו מה שהוא צריך","Ne pas refuser d’aider le pauvre","Dt 15:7"],
 ["L233","X:Y","","שלא לשלח עבד עברי ריקם כשייצא חופשי","Ne pas renvoyer l’esclave hébreu les mains vides","Dt 15:13"],
 ["L234","C","","שלא יתבע העני בחובו כשיידע שהוא עני, ולא יצר לו","Ne pas presser le débiteur que l’on sait pauvre","Ex 22:24"],
@@ -895,17 +899,17 @@ const M613 = [
 ["L347","P","","שלא לגלות ערוות אשת איש","Interdit de relation avec une femme mariée","Lv 18:20"],
 ["L348","P","m","שלא לשכב עם בהמה","Pour l’homme, interdit de relation avec un animal","Lv 18:20"],
 ["L349","P","f","שלא תביא אישה בהמה עליה","Pour la femme, interdit de relation avec un animal","Lv 18:23"],
-["L350","P","","שלא לשכב עם זכר","Interdit de relation homosexuelle masculine","Lv 18:22"],
-["L351","P","","שלא לגלות ערוות האב עצמו","Interdit de relation avec son père","Lv 18:7"],
-["L352","P","","שלא לגלות ערוות אחי האב עצמו","Interdit de relation avec le frère de son père","Lv 18:14"],
+["L350","P","m","שלא לשכב עם זכר","Interdit de relation homosexuelle masculine","Lv 18:22"],
+["L351","P","m","שלא לגלות ערוות האב עצמו","Interdit de relation avec son père","Lv 18:7"],
+["L352","P","m","שלא לגלות ערוות אחי האב עצמו","Interdit de relation avec le frère de son père","Lv 18:14"],
 ["L353","P","","שלא ליקרב לעריות בדברים המביאין לידי גילוי ערווה, כגון חיבוק ונישוק ורמיזה וקפיצה","Ne pas avoir de rapprochement physique avec une femme interdite","Lv 18:6"],
 ["L354","C","","שלא יישא ממזר בת ישראל","Pour le mamzer, ne pas épouser une Juive","Dt 23:3"],
 ["L355","P","","שלא תהיה קדשה, והיא הנבעלת בלא כתובה וקידושין","Interdit de relation hors mariage (kedécha)","Dt 23:18"],
 ["L356","C","","שלא יחזיר המגרש גרושתו אחר שנישאת לאחר","Ne pas reprendre sa divorcée après qu’elle s’est remariée","Dt 24:4"],
-["L357","C","","שלא תינשא היבמה לאחר חוץ מיבמה","Pour la veuve en attente de yiboum, ne pas épouser un autre homme","Dt 25:5"],
+["L357","C","f","שלא תינשא היבמה לאחר חוץ מיבמה","Pour la veuve en attente de yiboum, ne pas épouser un autre homme","Dt 25:5"],
 ["L358","X:J","","שלא יגרש האונס אנוסתו","Pour le violeur, ne pas divorcer de sa victime","Dt 22:29"],
 ["L359","X:J","","שלא יגרש מוציא שם רע את אשתו","Pour le calomniateur, ne pas divorcer de sa femme","Dt 22:19"],
-["L360","C","","שלא ייקח סריס בת ישראל","Pour l’homme mutilé, ne pas épouser une Juive","Dt 23:2"],
+["L360","C","m","שלא ייקח סריס בת ישראל","Pour l’homme mutilé, ne pas épouser une Juive","Dt 23:2"],
 ["L361","P","","שלא לסרס זכר מכל המינין, לא אדם ולא בהמה חיה ועוף","Ne pas castrer un homme ni un animal","Lv 22:24"],
 ["L362","C","","שלא למנות על ישראל איש מקהל גרים","Ne pas placer un converti à la tête du peuple","Dt 17:15"],
 ["L363","X:R","","שלא ירבה המלך סוסים","Pour le roi, ne pas accumuler les chevaux","Dt 17:16"],
@@ -938,6 +942,7 @@ const RAB = {
   R_ARAVA:    { he: "חבטת ערבה", fr: "Frapper la ‘arava (Hochaana Rabba)", src: "Souccah 44a" },
   R_RH2:      { he: "יום שני של ראש השנה", fr: "Observer le 2e jour de Roch Hachana et entendre le chofar", src: "Beitsa 5a" },
   R_SIMCHAT_TORAH: { he: "שמחת תורה", fr: "Achever et recommencer la lecture de la Torah (coutume)", src: "Méguila 31a" },
+  R_SUKKAH8:  { he: "ישיבה בסוכה בשמיני עצרת", fr: "Manger dans la souccah, sans bénédiction (diaspora)", src: "Souccah 47a" },
   R_EREV_YK:  { he: "אכילה בערב יום הכיפורים", fr: "Manger la veille de Kippour", src: "Yoma 81b" },
 };
 const MZ = {};
@@ -951,11 +956,12 @@ for (const [id, m] of Object.entries(RAB)) MZ[id] = Object.assign(m, { id, t: "R
 const STATIC_NOTES = {
   A5: "Matin, après-midi et soir : le nombre et les horaires des prières sont fixés par les Sages",
   A10: "Le soir et le matin", A12: "En semaine, le jour", A13: "En semaine, le jour", A14: "Obligatoire seulement si l’on porte, le jour, un vêtement à quatre coins ; il est louable d’en porter un pour accomplir la mitsva (Rambam, Tsitsit 3:11)", A15: "Obligatoire pour qui habite une maison ou un logement permanent",
-  A19: "Après un repas comportant du pain", A146: "Avant de manger de la viande ou de la volaille",
+  A19: "Après un repas comportant du pain", A17: "Aujourd’hui on s’en acquitte aussi en acquérant des livres d’étude (Choul‘han Aroukh YD 270:2)", A146: "Avant de manger de la viande ou de la volaille",
 };
 const CAT_LABEL = { P: "Permanente", C: "Selon les circonstances", D: "Liée à une date", I: "Terre d’Israël", S: "Année de chemita", X: "Non applicable aujourd’hui", R: "Dérabbanan" };
 const X_LABEL = { T: "Temple et sacrifices", J: "Sanhédrin et tribunaux habilités", R: "Royauté, guerre et conquête", Y: "Jubilé et esclavage hébreu", A: "Institutions disparues" };
-const POP_LABEL = { m: "femmes dispensées", f: "femmes", k: "cohanim", n: "naziréen", g: "" };
+const POP_LABEL = { m: "femmes dispensées", f: "femmes seulement", k: "cohanim seulement", K: "cohanim dispensés", n: "naziréen", g: "" };
+const popLabel = p => [...(p || "")].map(c => POP_LABEL[c]).filter(Boolean).join(", ");
 
 /* ===================== Calendrier hébraïque ===================== */
 const MONTH_KEYS = { tishri: "TISHRI", heshvan: "HESHVAN", cheshvan: "HESHVAN", kislev: "KISLEV", tevet: "TEVET", shevat: "SHEVAT", "adar i": "ADAR1", "adar ii": "ADAR2", adar: "ADAR", nisan: "NISAN", iyar: "IYAR", sivan: "SIVAN", tamuz: "TAMUZ", tammuz: "TAMUZ", av: "AV", elul: "ELUL" };
@@ -988,7 +994,7 @@ function computeDay(x, o) {
     items.push(Object.assign({ id, note: note || "" }, extra || {}));
   };
   const E = (fr, he, cls) => ev.push({ fr, he, cls });
-  let noTefillin = shabbat;
+  let noTefillin = shabbat, cholHamoed = false;
 
   // Chabbat
   if (shabbat) {
@@ -1011,7 +1017,7 @@ function computeDay(x, o) {
   };
   const NOTES = {
     A157: "La nuit du Séder, au début du jour", A158: "Obligatoire la nuit du Séder (un kazaït), facultative ensuite",
-    A164: "Du coucher du soleil la veille jusqu’à la nuit ; inclut les cinq privations",
+    A164: "Du coucher du soleil la veille jusqu’à la nuit. Sont aussi interdits : se laver, s’oindre, porter des chaussures de cuir, les relations conjugales",
     A168: "Repas et nuits dans la souccah", A169: "Le jour ; de la Torah partout le 1er jour",
     L323: "Préparer la nourriture reste permis (okhel néfech)", L324: "Préparer la nourriture reste permis (okhel néfech)",
     L325: "Préparer la nourriture reste permis (okhel néfech)", L326: "Préparer la nourriture reste permis (okhel néfech)",
@@ -1027,6 +1033,7 @@ function computeDay(x, o) {
     for (const id of ls) add(id, NOTES[id]);
     if (key === "NISAN-15") add("R_SEDER");
     if (key === "TISHRI-22" && isr) add("R_SIMCHAT_TORAH");
+    if (key === "TISHRI-22" && !isr) add("R_SUKKAH8");
   }
   // Veilles de fête : bougies
   if (["NISAN-14", "NISAN-20", "SIVAN-5", "ELUL-29", "TISHRI-9", "TISHRI-14", "TISHRI-21"].includes(key) && dow !== 6) add("R_NEROT_YT");
@@ -1043,6 +1050,7 @@ function computeDay(x, o) {
 
   // Roch Hachana 2e jour (partout)
   if (key === "TISHRI-2") { E("Roch Hachana · 2e jour", "ראש השנה", "yt"); noTefillin = true; add("R_RH2"); }
+  if (key === "TISHRI-1" || key === "TISHRI-2" || key === "TISHRI-10") add("R_YAALE", key === "TISHRI-10" ? "Dans la ‘Amida" : "");
 
   // Pessa‘h
   if (m === "NISAN") {
@@ -1055,14 +1063,15 @@ function computeDay(x, o) {
     }
     if (d >= 15 && d <= 21) { ["L197", "L198", "L200", "L201"].forEach(id => add(id)); add("A54"); }
     const chmStart = isr ? 16 : 17;
-    if (d >= chmStart && d <= 20) { E("‘Hol HaMoed Pessa‘h", "חול המועד פסח", "rabb"); add("R_CHM"); }
+    if (d >= chmStart && d <= 20) { E("‘Hol HaMoed Pessa‘h", "חול המועד פסח", "rabb"); add("R_CHM"); cholHamoed = true; }
+    if (d === 21 && isr && (x.h.y % 7 === 4 || x.h.y % 7 === 0)) add("A131", "À l’office de min‘ha du dernier jour de Pessa‘h, après le biour ma‘asserot fait la veille de Pessa‘h (années 4 et 7 du cycle)");
     if (d >= 15 && d <= (isr ? 21 : 22)) add("R_YAALE");
     if (d === 15 || (d === 16 && !isr)) add("R_HALLEL_FULL", "Hallel complet le soir du Séder et le matin");
     else if (d >= 16 && d <= (isr ? 21 : 22)) add("R_HALLEL_HALF");
   }
   // Omer
   if (x.omer) {
-    add("A161", `${ord(x.omer)} jour du Omer, compté la nuit au début du jour` + (x.omer >= 7 ? ` (${Math.floor(x.omer / 7)} semaine${x.omer >= 14 ? "s" : ""}${x.omer % 7 ? " et " + (x.omer % 7) + " jour" + (x.omer % 7 > 1 ? "s" : "") : ""})` : "") + ". De nombreux décisionnaires le tiennent pour dérabbanan aujourd’hui");
+    add("A161", `${ord(x.omer)} jour du Omer, compté la nuit au début du jour` + (x.omer >= 7 ? ` (${Math.floor(x.omer / 7)} semaine${x.omer >= 14 ? "s" : ""}${x.omer % 7 ? " et " + (x.omer % 7) + " jour" + (x.omer % 7 > 1 ? "s" : "") : ""})` : "") + "", { rab: true, rabWhy: "Sans le Temple, le compte du Omer est d’ordre rabbinique selon la majorité des décisionnaires (Michna Beroura 489:14)" });
     if (x.omer === 33) E("Lag BaOmer", "ל״ג בעומר", "");
   }
   // Chavouot
@@ -1075,7 +1084,7 @@ function computeDay(x, o) {
     if (d >= 15 && d <= 21) { add("A168", NOTES.A168); add("A54"); }
     if (d >= 15 && d <= 22) add("A54");
     if (d >= 16 && d <= 21 && !shabbat) add("R_LULAV");
-    if (d >= (isr ? 16 : 17) && d <= 21) { E(d === 21 ? "Hochaana Rabba" : "‘Hol HaMoed Souccot", d === 21 ? "הושענא רבה" : "חול המועד סוכות", "rabb"); add("R_CHM"); }
+    if (d >= (isr ? 16 : 17) && d <= 21) { E(d === 21 ? "Hochaana Rabba" : "‘Hol HaMoed Souccot", d === 21 ? "הושענא רבה" : "חול המועד סוכות", "rabb"); add("R_CHM"); cholHamoed = true; }
     if (d >= 15 && d <= (isr ? 22 : 23)) { add("R_HALLEL_FULL"); add("R_YAALE"); }
     if (d === 21) add("R_ARAVA");
   }
@@ -1105,15 +1114,39 @@ function computeDay(x, o) {
   }
   if (m === "ADAR1" && d === 14) E("Pourim Katan", "פורים קטן", "");
 
-  return { ev, spec: items, noTefillin };
+  if (m === "ELUL" && d === 29 && x.h.y % 7 === 0) { E("Fin de l’année de chemita", "סוף שנת השמיטה", "rabb"); add("A141", "Les dettes sont annulées au coucher du soleil ; un prozboul fait avant permet de les réclamer (Choul‘han Aroukh, ‘Hochen Michpat 67)"); }
+  if (cholHamoed && (isr || o.minhag === "s")) noTefillin = true;
+  return { ev, spec: items, noTefillin, cholHamoed };
 }
 
 function profileOK(m, o) {
-  if (m.pop === "m" && o.profile === "f") return false;
-  if (m.pop === "f" && o.profile !== "f") return false;
-  if (m.pop === "k" && o.profile !== "k") return false;
-  if (m.pop === "n") return false;
+  const p = m.pop || "";
+  if (p.includes("m") && o.profile === "f") return false;
+  if (p.includes("f") && o.profile !== "f") return false;
+  if (p.includes("k") && o.profile !== "k") return false;
+  if (p.includes("K") && o.profile === "k") return false;
+  if (p.includes("n")) return false;
+  // Souvenir d’Amalek : le Séfer Ha‘Hinoukh dispense les femmes, suivi par les décisionnaires séfarades
+  if (m.id === "A189" && o.profile === "f" && o.minhag === "s") return false;
   return true;
+}
+
+// Notes qui dépendent de la tradition, du lieu ou du profil.
+function dynNote(id, o, x) {
+  const a = o.minhag === "a";
+  switch (id) {
+    case "A12": case "A13":
+      return x.r.cholHamoed && a && !o.israel ? "‘Hol HaMoed : selon la coutume ashkénaze de diaspora on les met (Rema), beaucoup sans bénédiction" : "";
+    case "A189":
+      return o.profile === "f" ? "Les décisionnaires ashkénazes demandent aux femmes d’écouter la paracha Zakhor" : "";
+    case "L189": case "L190": case "L191":
+      return a && !o.israel ? "Hors d’Israël, beaucoup d’Ashkénazes suivent l’avis indulgent du Ba‘h ; le Choul‘han Aroukh (YD 293) l’interdit" : "";
+    case "A26":
+      return !o.israel && a ? "En diaspora, selon la coutume ashkénaze, seulement les jours de fête" : "Chaque jour, à la répétition de la ‘Amida";
+    case "A128": case "A130":
+      return x.h.y % 7 === 0 ? "Année de chemita : selon le statut des produits (consultez)" : "Selon l’année de la récolte dans le cycle de chemita";
+  }
+  return "";
 }
 
 // Répartit les 613 mitsvot (et les mitsvot dérabbanan du jour) dans des groupes dont la somme fait toujours 248 + 365.
@@ -1126,21 +1159,26 @@ function buckets(x, o) {
     B.spec.push(i);
     if (m.t === "R") continue;
     seen.add(i.id);
-    if (i.susp || i.rab) B.other.push({ id: i.id, note: i.susp ? "Suspendue ce jour" : "Le jour toranique est passé" });
+    if (i.susp || i.rab) B.other.push({ id: i.id, note: i.susp ? "Suspendue ce jour" : (i.rabWhy || "Le jour toranique est passé") });
   }
-  const shem = x.h.y % 7 === 0;
+  const cy = x.h.y % 7, shem = cy === 0;
   for (const id of TORAH_IDS) {
     if (seen.has(id)) continue;
     const m = MZ[id];
     if (m.cat === "X") { B.nonapp.push({ id }); continue; }
     if (!profileOK(m, o)) { B.prof.push({ id }); continue; }
+    const note = dynNote(id, o, x);
     if (m.cat === "P") {
-      if (x.r.noTefillin && (id === "A12" || id === "A13")) B.other.push({ id, note: "Pas de tefillin ce jour" });
-      else B.perm.push({ id });
-    } else if (m.cat === "C") B.cond.push({ id });
+      if (x.r.noTefillin && (id === "A12" || id === "A13")) B.other.push({ id, note: x.r.cholHamoed ? "Pas de tefillin à ‘Hol HaMoed (Choul‘han Aroukh 31:2 ; coutume d’Israël)" : "Pas de tefillin ce jour" });
+      else B.perm.push({ id, note });
+    } else if (m.cat === "C") B.cond.push({ id, note });
     else if (m.cat === "D") B.other.push({ id });
-    else if (m.cat === "I") (o.israel ? B.land : B.other).push({ id, note: o.israel ? "" : "En Terre d’Israël" });
-    else if (m.cat === "S") (shem && (o.israel || m.pop === "g") ? B.land : B.other).push({ id, note: shem ? "" : "Pendant l’année de chemita" });
+    else if (m.cat === "I") {
+      const inCycle = id === "A128" ? [0, 1, 2, 4, 5].includes(cy) : id === "A130" ? [0, 3, 6].includes(cy) : true;
+      if (o.israel && inCycle) B.land.push({ id, note });
+      else B.other.push({ id, note: !o.israel ? "En Terre d’Israël" : id === "A128" ? "Années 1, 2, 4 et 5 du cycle de chemita" : "Années 3 et 6 du cycle de chemita" });
+    }
+    else if (m.cat === "S") (shem && o.israel ? B.land : B.other).push({ id, note: shem ? "" : "Pendant l’année de chemita, en Terre d’Israël" });
   }
   return B;
 }
@@ -1184,7 +1222,7 @@ if (typeof document !== "undefined") (function () {
   const todayT = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   const S = {
     year: now.getFullYear(), sel: todayT, tab: "cal", filter: "all", cat: "all", q: "",
-    o: { israel: store.get("israel", false), profile: store.get("profile", "h") },
+    o: { israel: store.get("israel", false), profile: store.get("profile", "h"), minhag: store.get("minhag", "s") },
   };
   let days = [], byT = new Map(), repoCache = null;
   const MONTHS_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
@@ -1239,7 +1277,7 @@ if (typeof document !== "undefined") (function () {
   function li(i) {
     const m = MZ[i.id], t = i.rab ? "R" : m.t;
     const n = m.t === "R" ? "דרבנן" : (m.t === "A" ? "ע׳ " : "ל״ת ") + m.num;
-    const note = [i.note, i.rab ? "Ce jour supplémentaire est d’institution rabbinique" : "", STATIC_NOTES[i.id] && !i.note ? STATIC_NOTES[i.id] : "", m.pop && POP_LABEL[m.pop] ? "Concerne : " + POP_LABEL[m.pop] : ""].filter(Boolean).join(" · ");
+    const note = [i.note, i.rab ? (i.rabWhy || "Ce jour supplémentaire est d’institution rabbinique") : "", STATIC_NOTES[i.id] && !i.note ? STATIC_NOTES[i.id] : "", popLabel(m.pop) ? "Concerne : " + popLabel(m.pop) : ""].filter(Boolean).join(" · ");
     return `<li class="${i.susp ? "susp" : ""} t${t}"><span class="n he">${n}</span><div class="t"><div class="row1"><span class="fr">${esc(m.fr)}</span><span class="src">${esc(m.src)}</span></div><span class="he hq">${esc(m.he)}</span>${note ? `<span class="note">${esc(note)}</span>` : ""}</div></li>`;
   }
   const ul = list => list.length ? `<ul class="mz">${list.map(li).join("")}</ul>` : `<p class="empty">Aucune.</p>`;
@@ -1336,7 +1374,7 @@ if (typeof document !== "undefined") (function () {
       return `<tr><td>${tg}</td>
         <td class="num">${m.num || "–"}</td>
         <td><div>${esc(m.fr)}</div><div class="he hq">${esc(m.he)}</div></td>
-        <td><span class="tag p">${esc(cat)}</span>${m.pop && POP_LABEL[m.pop] ? ` <span class="tag p">${POP_LABEL[m.pop]}</span>` : ""}</td>
+        <td><span class="tag p">${esc(cat)}</span>${popLabel(m.pop) ? ` <span class="tag p">${popLabel(m.pop)}</span>` : ""}</td>
         <td style="white-space:nowrap">${esc(m.src)}</td>
         <td class="num">${n}<div class="bar"><i style="width:${(100 * n / max).toFixed(1)}%"></i></div></td></tr>`;
     }).join("") || `<tr><td colspan="6" class="empty">Aucune mitsva ne correspond à cette recherche.</td></tr>`;
@@ -1357,6 +1395,7 @@ if (typeof document !== "undefined") (function () {
     $("#yLabel").textContent = S.year;
     $("#oIsr").setAttribute("aria-pressed", S.o.israel); $("#oDias").setAttribute("aria-pressed", !S.o.israel);
     document.querySelectorAll("#profile button").forEach(b => b.setAttribute("aria-pressed", b.dataset.p === S.o.profile));
+    document.querySelectorAll("#minhag button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === S.o.minhag));
     for (const [tab, view, btn] of [["cal", "#viewCal", "#tabCal"], ["repo", "#viewRepo", "#tabRepo"], ["ev", "#viewEv", "#tabEv"]]) {
       $(view).hidden = S.tab !== tab; $(btn).setAttribute("aria-selected", S.tab === tab);
     }
@@ -1371,6 +1410,7 @@ if (typeof document !== "undefined") (function () {
   $("#oIsr").onclick = () => { S.o.israel = true; store.set("israel", true); rebuild(); };
   $("#oDias").onclick = () => { S.o.israel = false; store.set("israel", false); rebuild(); };
   document.querySelectorAll("#profile button").forEach(b => b.onclick = () => { S.o.profile = b.dataset.p; store.set("profile", S.o.profile); rebuild(); });
+  document.querySelectorAll("#minhag button").forEach(b => b.onclick = () => { S.o.minhag = b.dataset.m; store.set("minhag", S.o.minhag); rebuild(); });
   $("#goToday").onclick = () => { S.tab = "cal"; S.sel = todayT; if (S.year !== now.getFullYear()) { S.year = now.getFullYear(); rebuild(); } else render(); };
   $("#tabCal").onclick = () => { S.tab = "cal"; render(); };
   $("#tabRepo").onclick = () => { S.tab = "repo"; render(); };
