@@ -1,0 +1,15 @@
+{
+  "name": "Louah HaMitsvot",
+  "short_name": "Mitsvot",
+  "description": "Les 613 mitsvot et les mitsvot de nos Sages pour chaque jour de l’année, avec horaires, paracha et sources.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f5fa",
+  "theme_color": "#1d4ea6",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
