@@ -243,6 +243,33 @@ ul.mz li { display: block; padding: 0; overflow: hidden; }
 .mtlab { margin: 0; font-size: 0.78rem; color: var(--muted); font-weight: 600; }
 .mtref { border-top: 1px dashed var(--line); padding-top: 8px; }
 .saref:first-child.mtref { border-top: 0; padding-top: 0; }
+
+/* Calendrier : un mois à la fois */
+.months { display: block; }
+.month.one { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.mnav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mnav button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; width: 44px; height: 44px; font-size: 1.4rem; line-height: 1; }
+.mnav button:hover { border-color: var(--tekhelet); }
+.mtitle { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.mtitle b { font-family: var(--display); font-size: 1.35rem; }
+.mtitle small { color: var(--muted); font-weight: 600; }
+.gotos { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: flex-end; }
+.goto { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.85rem; }
+.goto > span { width: 100%; color: var(--muted); font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.goto input, .goto select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.gomsg { margin: 0; color: var(--lo); font-size: 0.85rem; }
+.month.one .grid7 { gap: 4px; }
+.month.one .cell { aspect-ratio: auto; min-height: 58px; padding: 6px 2px; justify-content: flex-start; gap: 2px; }
+.month.one .cell .g { font-size: 1rem; }
+.month.one .cell .h { font-size: 0.75rem; }
+.month.one .dow { font-size: 0.85rem; }
+.evm { font-size: 0.6rem; line-height: 1.1; font-weight: 700; text-align: center; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; max-width: 100%; padding: 0 2px; }
+.mev h4 { margin: 0 0 4px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.mevrow { display: grid; grid-template-columns: 6.5rem 5.5rem minmax(0, 1fr); gap: 8px; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--line); padding: 7px 4px; align-items: baseline; }
+.mevrow:hover { background: var(--lvl0); }
+.mevrow .gd { font-weight: 600; font-variant-numeric: tabular-nums; }
+.mevrow .hd { color: var(--tekhelet); }
+@media (max-width: 480px) { .mevrow { grid-template-columns: 5.6rem minmax(0, 1fr); } .mevrow .hd { display: none; } .evm { display: none; } .month.one .cell { min-height: 48px; } }
 footer { color: var(--muted); font-size: 0.82rem; max-width: 80ch; display: flex; flex-direction: column; gap: 6px; }
 footer p { margin: 0; }
 @media (prefers-reduced-motion: no-preference) { .cell { transition: filter .12s; } }
@@ -1267,7 +1294,7 @@ if (typeof document !== "undefined") (function () {
   const now = new Date();
   const todayT = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   const S = {
-    year: now.getFullYear(), sel: todayT, tab: "cal", filter: "all", cat: "all", q: "",
+    year: now.getFullYear(), month: now.getMonth(), sel: todayT, tab: "cal", filter: "all", cat: "all", q: "",
     o: { israel: store.get("israel", false), profile: store.get("profile", "h"), minhag: store.get("minhag", "s") },
   };
   let days = [], byT = new Map(), repoCache = null;
@@ -1282,7 +1309,7 @@ if (typeof document !== "undefined") (function () {
     days = buildYear(S.year, S.o);
     byT = new Map(days.map(x => [x.t, x]));
     repoCache = null;
-    if (!byT.has(S.sel)) S.sel = (S.year === now.getFullYear()) ? todayT : Date.UTC(S.year, 0, 1);
+    if (!byT.has(S.sel)) S.sel = (S.year === now.getFullYear()) ? todayT : Date.UTC(S.year, S.month, 1);
     render();
   }
 
@@ -1299,25 +1326,74 @@ if (typeof document !== "undefined") (function () {
       <div class="total"><span class="k">Jours avec mitsvot propres</span><span class="v">${special} <small style="font-size:.9rem;color:var(--muted)">/ ${days.length}</small></span></div>`;
   }
 
+  const HE_ORDER = ["TISHRI", "HESHVAN", "KISLEV", "TEVET", "SHEVAT", "ADAR", "ADAR1", "ADAR2", "NISAN", "IYAR", "SIVAN", "TAMUZ", "AV", "ELUL"];
+  const isoDate = t => new Date(t).toISOString().slice(0, 10);
+
   function renderCal() {
-    let html = "";
-    for (let mo = 0; mo < 12; mo++) {
-      const md = days.filter(x => x.dt.getUTCMonth() === mo);
-      const hm = [...new Set(md.map(x => FR_MONTH[x.h.m]))].join(" – ");
-      html += `<div class="month"><h3><span>${MONTHS_FR[mo]}</span><small>${esc(hm)}</small></h3><div class="grid7">`;
-      html += DOW_HE.map(dw => `<div class="dow">${dw}</div>`).join("");
-      for (let i = 0; i < md[0].dow; i++) html += "<div></div>";
-      for (const x of md) {
-        const cls = ["cell", "l" + level(x.c)];
-        if (x.r.spec.some(i => (i.rab || MZ[i.id].t === "R") && i.id !== "R_NEROT_SH" && i.id !== "R_SEUDOT")) cls.push("rb");
-        if (x.t === todayT) cls.push("today");
-        if (x.t === S.sel) cls.push("sel");
-        const label = `${x.dt.getUTCDate()} ${MONTHS_FR[mo]}, ${x.h.d} ${FR_MONTH[x.h.m]}${x.r.ev.length ? " — " + x.r.ev.map(e => e.fr).join(", ") : ""}`;
-        html += `<button class="${cls.join(" ")}" data-t="${x.t}" aria-label="${esc(label)}" title="${esc(label)}"><span class="g">${x.dt.getUTCDate()}</span><span class="h">${gem(x.h.d)}</span></button>`;
-      }
-      html += "</div></div>";
+    const mo = S.month, md = days.filter(x => x.dt.getUTCMonth() === mo);
+    const hm = [...new Set(md.map(x => FR_MONTH[x.h.m]))].join(" – ");
+    const hy = [...new Set(md.map(x => x.h.y))].join("-");
+    const sel = byT.get(S.sel);
+    let html = `<div class="month one">
+      <div class="mnav">
+        <button id="mPrev" aria-label="Mois précédent">‹</button>
+        <div class="mtitle"><b>${MONTHS_FR[mo]} ${S.year}</b><small>${esc(hm)} ${hy}</small></div>
+        <button id="mNext" aria-label="Mois suivant">›</button>
+      </div>
+      <div class="gotos">
+        <label class="goto"><span>Date</span><input type="date" id="goDate" value="${isoDate(S.sel)}" min="1900-01-01" max="2200-12-31"></label>
+        <div class="goto"><span>Date hébraïque</span>
+          <select id="goHd" aria-label="Jour hébraïque">${Array.from({ length: 30 }, (_, i) => `<option value="${i + 1}"${sel && sel.h.d === i + 1 ? " selected" : ""}>${gem(i + 1)}</option>`).join("")}</select>
+          <select id="goHm" aria-label="Mois hébraïque">${HE_ORDER.map(k => `<option value="${k}"${sel && sel.h.m === k ? " selected" : ""}>${FR_MONTH[k]}</option>`).join("")}</select>
+          <button id="goHebrew" class="btn">Aller</button>
+        </div>
+      </div>
+      <p id="goMsg" class="gomsg" hidden></p>
+      <div class="grid7">`;
+    html += DOW_HE.map(dw => `<div class="dow">${dw}</div>`).join("");
+    for (let i = 0; i < md[0].dow; i++) html += "<div></div>";
+    for (const x of md) {
+      const cls = ["cell", "l" + level(x.c)];
+      if (x.r.spec.some(i => (i.rab || MZ[i.id].t === "R") && i.id !== "R_NEROT_SH" && i.id !== "R_SEUDOT")) cls.push("rb");
+      if (x.t === todayT) cls.push("today");
+      if (x.t === S.sel) cls.push("sel");
+      const evs = x.r.ev.filter(e => e.fr !== "Chabbat");
+      const label = `${x.dt.getUTCDate()} ${MONTHS_FR[mo]}, ${x.h.d} ${FR_MONTH[x.h.m]}${x.r.ev.length ? " — " + x.r.ev.map(e => e.fr).join(", ") : ""}`;
+      html += `<button class="${cls.join(" ")}" data-t="${x.t}" aria-label="${esc(label)}" title="${esc(label)}"><span class="g">${x.dt.getUTCDate()}</span><span class="h">${gem(x.h.d)}</span>${evs.length ? `<span class="evm">${esc(evs[0].fr.replace(/ · .*/, ""))}</span>` : ""}</button>`;
     }
+    html += `</div>`;
+    const evDays = md.filter(x => x.r.ev.some(e => e.fr !== "Chabbat"));
+    if (evDays.length) html += `<div class="mev"><h4>Ce mois-ci</h4>${evDays.map(x => `<button class="mevrow" data-t="${x.t}"><span class="gd">${esc(shortFmt.format(x.dt))}</span><span class="he hd">${gem(x.h.d)} ${HE_MONTH[x.h.m]}</span><span>${x.r.ev.filter(e => e.fr !== "Chabbat").map(e => esc(e.fr)).join(", ")}</span></button>`).join("")}</div>`;
+    html += `</div>`;
     $("#months").innerHTML = html;
+    $("#mPrev").onclick = () => moveMonth(-1);
+    $("#mNext").onclick = () => moveMonth(1);
+    $("#goDate").onchange = e => { if (e.target.value) { const [y, m, d] = e.target.value.split("-").map(Number); goTo(Date.UTC(y, m - 1, d)); } };
+    $("#goHebrew").onclick = () => {
+      const d = +$("#goHd").value, m = $("#goHm").value;
+      // Cherche la prochaine occurrence à partir du jour sélectionné (sur environ 3 ans)
+      for (let k = 0; k < 1100; k++) {
+        const t = S.sel + k * 864e5, h = hebDate(new Date(t + 12 * 36e5));
+        const mm = (m === "ADAR" && h.m === "ADAR2") ? "ADAR" : h.m;
+        if (h.d === d && mm === m) { goTo(t); return; }
+      }
+      const msg = $("#goMsg"); msg.textContent = `Le ${d} ${FR_MONTH[m]} n’existe pas dans les trois prochaines années.`; msg.hidden = false;
+    };
+  }
+
+  function moveMonth(n) {
+    let m = S.month + n, y = S.year;
+    if (m < 0) { m = 11; y--; } else if (m > 11) { m = 0; y++; }
+    S.month = m;
+    if (y !== S.year) { S.year = y; S.sel = Date.UTC(y, m, 1); rebuild(); }
+    else renderCal();
+  }
+
+  function goTo(t) {
+    const d = new Date(t), y = d.getUTCFullYear();
+    S.sel = t; S.month = d.getUTCMonth(); S.tab = "cal";
+    if (y !== S.year) { S.year = y; rebuild(); } else render();
+    if (window.innerWidth <= 920) $("#day").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function li(i) {
@@ -1426,7 +1502,7 @@ if (typeof document !== "undefined") (function () {
 
   function step(n) {
     const t = S.sel + n * 864e5, y = new Date(t).getUTCFullYear();
-    S.sel = t;
+    S.sel = t; S.month = new Date(t).getUTCMonth();
     if (y !== S.year) { S.year = y; rebuild(); } else { renderTotals(); renderCal(); renderDay(); }
   }
 
@@ -1493,12 +1569,12 @@ if (typeof document !== "undefined") (function () {
   $("#oDias").onclick = () => { S.o.israel = false; store.set("israel", false); rebuild(); };
   document.querySelectorAll("#profile button").forEach(b => b.onclick = () => { S.o.profile = b.dataset.p; store.set("profile", S.o.profile); rebuild(); });
   document.querySelectorAll("#minhag button").forEach(b => b.onclick = () => { S.o.minhag = b.dataset.m; store.set("minhag", S.o.minhag); rebuild(); });
-  $("#goToday").onclick = () => { S.tab = "cal"; S.sel = todayT; if (S.year !== now.getFullYear()) { S.year = now.getFullYear(); rebuild(); } else render(); };
+  $("#goToday").onclick = () => goTo(todayT);
   $("#tabCal").onclick = () => { S.tab = "cal"; render(); };
   $("#tabRepo").onclick = () => { S.tab = "repo"; render(); };
   $("#tabEv").onclick = () => { S.tab = "ev"; render(); };
-  $("#months").addEventListener("click", e => { const b = e.target.closest(".cell"); if (!b) return; S.sel = +b.dataset.t; renderTotals(); renderCal(); renderDay(); if (window.innerWidth <= 920) $("#day").scrollIntoView({ behavior: "smooth", block: "start" }); });
-  $("#evList").addEventListener("click", e => { const b = e.target.closest(".evrow"); if (!b) return; S.sel = +b.dataset.t; S.tab = "cal"; render(); });
+  $("#months").addEventListener("click", e => { const b = e.target.closest(".cell, .mevrow"); if (!b) return; S.sel = +b.dataset.t; renderTotals(); renderCal(); renderDay(); if (window.innerWidth <= 920) $("#day").scrollIntoView({ behavior: "smooth", block: "start" }); });
+  $("#evList").addEventListener("click", e => { const b = e.target.closest(".evrow"); if (!b) return; goTo(+b.dataset.t); });
   $("#q").addEventListener("input", e => { S.q = e.target.value; renderRepo(); });
   $("#catSel").addEventListener("change", e => { S.cat = e.target.value; renderRepo(); });
   document.querySelectorAll("#typeSeg button").forEach(b => b.onclick = () => {
