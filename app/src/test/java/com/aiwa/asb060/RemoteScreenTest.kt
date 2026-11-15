@@ -189,6 +189,52 @@ class RemoteScreenTest {
         assertEquals(listOf("NEC:20:99"), bar.held)
     }
 
+    private fun menu(a: MainActivity, title: String) {
+        click(byText(a.window.decorView, "⋮"))
+        val popup = org.robolectric.shadows.ShadowPopupMenu.getLatestPopupMenu()
+        val item = (0 until popup.menu.size()).map { popup.menu.getItem(it) }.first { it.title.toString() == title }
+        org.robolectric.Shadows.shadowOf(popup).onMenuItemClickListener.onMenuItemClick(item)
+        idle()
+    }
+
+    @Test
+    fun menuChoosesAnotherRemoteAndCopiesCodes() {
+        val a = launch()
+        click(latestDialog().getButton(AlertDialog.BUTTON_POSITIVE))
+        val store = CodeStore(app)
+        store.verified = true
+
+        // Choisir la deuxième télécommande de la liste.
+        menu(a, "Choisir une télécommande proche…")
+        val chooser = latestDialog()
+        assertEquals("Télécommandes proches", dialogTitle(chooser))
+        val list = chooser.listView
+        assertTrue(list.adapter.count > 80)
+        assertTrue(list.adapter.getItem(0).toString().startsWith("Majority K2 SoundBar\ntélécommande identique · 12 touches"))
+        assertTrue(list.adapter.getItem(1).toString().startsWith("Craig CHT921\nressemblance 92 % · 12 touches"))
+        list.performItemClick(list, 1, 1)
+        idle()
+        assertEquals("Craig CHT921", store.profileName)
+        assertEquals("NEC:00:12", store.get(Keys.POWER)?.format())
+        assertFalse("une télécommande chargée à la main reste à vérifier", store.verified)
+
+        // Exporter, tout effacer, puis importer depuis le presse-papiers.
+        menu(a, "Exporter les codes (presse-papiers)")
+        menu(a, "Tout effacer")
+        click(latestDialog().getButton(AlertDialog.BUTTON_POSITIVE))
+        assertEquals(0, store.configuredCount)
+        assertTrue(textOf(a.window.decorView).contains("Aucune touche n'a de code"))
+        menu(a, "Importer les codes (presse-papiers)")
+        assertEquals(12, store.configuredCount)
+        assertEquals("NEC:00:12", store.get(Keys.POWER)?.format())
+        assertTrue(ShadowToast.getTextOfLatestToast().contains("12 touche(s) importée(s)"))
+
+        menu(a, "Aide")
+        assertEquals("Comment ça marche", dialogTitle(latestDialog()))
+        menu(a, "Recherche automatique")
+        assertEquals(ScannerActivity::class.java.name, org.robolectric.Shadows.shadowOf(a).nextStartedActivity.component?.className)
+    }
+
     @Test
     fun oldSourceKeyAndExportImport() {
         app.getSharedPreferences("codes", Context.MODE_PRIVATE).edit().putString("source", "NEC:00:02").commit()
