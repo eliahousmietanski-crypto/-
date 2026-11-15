@@ -2,6 +2,7 @@ package com.aiwa.asb060
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -48,13 +49,71 @@ class ScannerActivity : Activity() {
     private val sent = ArrayDeque<String>()
     private var updatingFields = false
 
-    private val tick = object : Runnable {
+    private val audio by lazy { getSystemService(AudioManager::class.java) }
+    private lateinit var musicStatus: TextView
+    private var autoStopOnMusic = true
+    private var sentAt = 0L
+    private val statusLoop: Runnable = object : Runnable {
+        override fun run() { updateMusicStatus(); handler.postDelayed(this, 1000) }
+    }
+
+    /** Envoie un code, puis surveille la musique pendant l'intervalle avant de passer au suivant. */
+    private val tick: Runnable = object : Runnable {
         override fun run() {
             if (!running) return
             sendCurrent()
-            if (!step(+1)) { stopAuto(); Toast.makeText(this@ScannerActivity, "Fin du balayage (FF)", Toast.LENGTH_SHORT).show(); return }
-            handler.postDelayed(this, intervalMs.toLong())
+            sentAt = System.currentTimeMillis()
+            handler.postDelayed(watch, 100)
         }
+    }
+
+    private val watch: Runnable = object : Runnable {
+        override fun run() {
+            if (!running) return
+            if (autoStopOnMusic && musicWasPlaying && !audio.isMusicActive) {
+                musicStopped()
+                return
+            }
+            updateMusicStatus()
+            if (System.currentTimeMillis() - sentAt >= intervalMs) {
+                if (!step(+1)) { stopAuto(); Toast.makeText(this@ScannerActivity, "Fin du balayage (FF)", Toast.LENGTH_SHORT).show(); return }
+                render()
+                handler.post(tick)
+            } else handler.postDelayed(this, 100)
+        }
+    }
+
+    private var musicWasPlaying = false
+
+    private fun updateMusicStatus() {
+        val on = audio.isMusicActive
+        if (running) musicWasPlaying = musicWasPlaying || on
+        musicStatus.text = if (on) "🎵 Musique en lecture sur le téléphone : le scan s'arrêtera tout seul si elle se met en pause"
+            else "Aucune musique détectée sur le téléphone. Lancez une musique depuis le Poco (en Bluetooth vers la barre) pour l'arrêt automatique."
+    }
+
+    /** La musique vient de s'arrêter : le code qui vient de partir est le bon (ou celui d'avant). */
+    private fun musicStopped() {
+        stopAuto()
+        val candidates = sent.take(2)
+        val found = candidates.firstOrNull() ?: return
+        AlertDialog.Builder(this)
+            .setTitle("La musique s'est arrêtée !")
+            .setMessage("Code envoyé juste avant : $found" +
+                (if (candidates.size > 1) "\n(si ce n'est pas lui, c'est ${candidates[1]})" else "") +
+                "\n\nRelancez la musique puis appuyez sur « Tester » pour vérifier qu'il remet bien en pause.")
+            .setPositiveButton("Attribuer à une touche") { _, _ -> pickKey(IrCode.parse(found)!!) }
+            .setNeutralButton("Tester") { _, _ -> testCode(found) }
+            .setNegativeButton("Continuer le scan") { _, _ -> startAuto() }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun testCode(c: String) {
+        val code = IrCode.parse(c) as IrCode.Nec
+        address = code.address; extended = code.extended; command = code.command
+        render()
+        sendCurrent()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,10 +128,18 @@ class ScannerActivity : Activity() {
         setContentView(buildUi())
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         render()
+        updateMusicStatus()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        handler.removeCallbacks(statusLoop)
+        handler.post(statusLoop)
     }
 
     override fun onPause() {
         super.onPause()
+        handler.removeCallbacks(statusLoop)
         stopAuto()
         prefs.edit().putInt("addr", address).putBoolean("ext", extended).putInt("cmd", command)
             .putBoolean("sweepAddr", sweepAddress).putInt("interval", intervalMs).apply()
@@ -152,6 +219,16 @@ class ScannerActivity : Activity() {
         ctl2.addView(modeBtn, weighted(60, 4))
         root.addView(ctl2, fullWidth())
 
+        val autoStop = android.widget.CheckBox(this).apply {
+            text = "Arrêter le scan dès que la musique se met en pause"
+            setTextColor(getColor(R.color.text))
+            isChecked = autoStopOnMusic
+            setOnCheckedChangeListener { _, c -> autoStopOnMusic = c }
+        }
+        root.addView(autoStop, fullWidth().apply { topMargin = dp(8) })
+        musicStatus = label("", 12f, muted = true)
+        root.addView(musicStatus, fullWidth())
+
         root.addView(keyButton("✔ Ça a réagi : attribuer à une touche…", power = false).apply {
             setBackgroundResource(R.drawable.key_power_rect)
             setOnClickListener { stopAuto(); assign() }
@@ -160,7 +237,7 @@ class ScannerActivity : Activity() {
         root.addView(label("Derniers codes envoyés (du plus récent au plus ancien) :", 13f, muted = true), fullWidth().apply { topMargin = dp(12) })
         history = label("—", 14f).apply { typeface = android.graphics.Typeface.MONOSPACE }
         root.addView(history, fullWidth())
-        root.addView(label("Astuce : avec un intervalle de 1,5 s, la barre réagit souvent pendant que le code suivant part. Revenez avec ◀ et testez avec « Envoyer » pour être sûr.", 12f, muted = true), fullWidth().apply { topMargin = dp(10) })
+        root.addView(label("Astuce : lancez une musique depuis le Poco, connecté en Bluetooth à la barre. Quand un code met la musique en pause (touche Lecture/Pause, Power, Source…), le scan s'arrête tout seul et vous propose d'attribuer le code.", 12f, muted = true), fullWidth().apply { topMargin = dp(10) })
 
         return ScrollView(this).apply { addView(root) }
     }
@@ -219,6 +296,7 @@ class ScannerActivity : Activity() {
 
     private fun startAuto() {
         running = true
+        musicWasPlaying = audio.isMusicActive
         render()
         handler.post(tick)
     }
@@ -226,6 +304,7 @@ class ScannerActivity : Activity() {
     private fun stopAuto() {
         running = false
         handler.removeCallbacks(tick)
+        handler.removeCallbacks(watch)
         if (::autoBtn.isInitialized) render()
     }
 
