@@ -2,160 +2,97 @@ package com.aiwa.asb060
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.media.AudioManager
+import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.text.Editable
+import android.text.InputFilter
 import android.text.InputType
 import android.text.TextWatcher
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
-import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import java.util.Locale
 
 /**
- * Balaye les codes NEC pour retrouver ceux de la télécommande d'origine.
- * Mode « commande » : adresse fixe, la commande avance de 00 à FF.
- * Mode « adresse » : commande fixe, l'adresse avance de 00 à FF.
+ * Recherche automatique des codes : essaie les codes du plus probable au moins probable
+ * (voir [ScanPlan]) et s'arrête toute seule quand la barre de son réagit (voir [ScanEngine]).
  */
-class ScannerActivity : Activity() {
-    private lateinit var ir: IrTransmitter
+class ScannerActivity : Activity(), ScanListener {
+    private lateinit var ir: IrSender
+    private lateinit var probe: Probe
     private lateinit var store: CodeStore
-    private val prefs by lazy { getSharedPreferences("scanner", MODE_PRIVATE) }
+    private lateinit var db: ProfileDb
+    private lateinit var engine: ScanEngine
+    private val prefs by lazy { getSharedPreferences("search", MODE_PRIVATE) }
     private val handler = Handler(Looper.getMainLooper())
 
-    private var address = 0x00
-    private var extended = false
-    private var command = 0x00
-    /** 0 = TOUT (commandes puis adresse suivante), 1 = COMMANDE seule, 2 = ADRESSE seule */
-    private var mode = MODE_ALL
-    private val sweepAddress get() = mode == MODE_ADDRESS
-    private lateinit var progress: TextView
+    /** Adresse quand la recherche est limitée à une seule adresse, sinon null. */
+    private var singleAddress: String? = null
+    private var ticks = 0
+    private var resumed = false
 
-    companion object {
-        const val MODE_ALL = 0
-        const val MODE_COMMAND = 1
-        const val MODE_ADDRESS = 2
-        /** Ordre des adresses en mode TOUT : les plus courantes d'abord, puis toutes les autres. */
-        val ADDRESS_ORDER: List<Int> = listOf(0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x6E, 0xFF).let { f ->
-            f + (0..0xFF).filter { it !in f }
-        }
-    }
-    private var intervalMs = 1500
-    private var running = false
-
-    private lateinit var current: TextView
-    private lateinit var addrInput: EditText
-    private lateinit var cmdInput: EditText
+    private lateinit var checks: TextView
+    private lateinit var phaseText: TextView
+    private lateinit var detailText: TextView
+    private lateinit var codeText: TextView
+    private lateinit var progress: ProgressBar
+    private lateinit var countText: TextView
+    private lateinit var stateText: TextView
+    private lateinit var startBtn: Button
+    private lateinit var historyText: TextView
+    private lateinit var advanced: LinearLayout
     private lateinit var intervalInput: EditText
-    private lateinit var autoBtn: Button
-    private lateinit var modeBtn: Button
-    private lateinit var history: TextView
-    private val sent = ArrayDeque<String>()
-    private var updatingFields = false
+    private lateinit var jumpRow: LinearLayout
+    private lateinit var modeText: TextView
 
-    private val audio by lazy { getSystemService(AudioManager::class.java) }
-    private lateinit var musicStatus: TextView
-    private var autoStopOnMusic = true
-    private var sentAt = 0L
-    private val statusLoop: Runnable = object : Runnable {
-        override fun run() { updateMusicStatus(); handler.postDelayed(this, 1000) }
-    }
-
-    /** Envoie un code, puis surveille la musique pendant l'intervalle avant de passer au suivant. */
-    private val tick: Runnable = object : Runnable {
+    private val ticker = object : Runnable {
         override fun run() {
-            if (!running) return
-            sendCurrent()
-            sentAt = System.currentTimeMillis()
-            handler.postDelayed(watch, 100)
+            if (!resumed) return
+            engine.tick()
+            if (ticks++ % 10 == 0) renderChecks()
+            handler.postDelayed(this, ScanEngine.TICK_MS)
         }
-    }
-
-    private val watch: Runnable = object : Runnable {
-        override fun run() {
-            if (!running) return
-            if (autoStopOnMusic && musicWasPlaying && !audio.isMusicActive) {
-                musicStopped()
-                return
-            }
-            updateMusicStatus()
-            if (System.currentTimeMillis() - sentAt >= intervalMs) {
-                if (!step(+1)) { stopAuto(); Toast.makeText(this@ScannerActivity, "Balayage terminé", Toast.LENGTH_SHORT).show(); return }
-                render()
-                handler.post(tick)
-            } else handler.postDelayed(this, 100)
-        }
-    }
-
-    private var musicWasPlaying = false
-
-    private fun updateMusicStatus() {
-        val on = audio.isMusicActive
-        if (running) musicWasPlaying = musicWasPlaying || on
-        musicStatus.text = if (on) "🎵 Musique en lecture sur le téléphone : le scan s'arrêtera tout seul si elle se met en pause"
-            else "Aucune musique détectée sur le téléphone. Lancez une musique depuis le Poco (en Bluetooth vers la barre) pour l'arrêt automatique."
-    }
-
-    /** La musique vient de s'arrêter : le code qui vient de partir est le bon (ou celui d'avant). */
-    private fun musicStopped() {
-        stopAuto()
-        val candidates = sent.take(if (intervalMs < 1000) 3 else 2)
-        val found = candidates.firstOrNull() ?: return
-        AlertDialog.Builder(this)
-            .setTitle("La musique s'est arrêtée !")
-            .setMessage("Code envoyé juste avant : $found" +
-                (if (candidates.size > 1) "\n(si ce n'est pas lui : ${candidates.drop(1).joinToString(" ou ")})" else "") +
-                "\n\nRelancez la musique puis appuyez sur « Tester » pour vérifier qu'il remet bien en pause.")
-            .setPositiveButton("Attribuer à une touche") { _, _ -> pickKey(IrCode.parse(found)!!) }
-            .setNeutralButton("Tester") { _, _ -> testCode(found) }
-            .setNegativeButton("Continuer le scan") { _, _ -> startAuto() }
-            .setCancelable(false)
-            .show()
-    }
-
-    private fun testCode(c: String) {
-        val code = IrCode.parse(c) as IrCode.Nec
-        address = code.address; extended = code.extended; command = code.command
-        render()
-        sendCurrent()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ir = IrTransmitter(this)
+        ir = Deps.sender(this)
+        probe = Deps.probe(this)
         store = CodeStore(this)
-        address = prefs.getInt("addr", 0)
-        extended = prefs.getBoolean("ext", false)
-        command = prefs.getInt("cmd", 0)
-        mode = prefs.getInt("mode", MODE_ALL)
-        intervalMs = prefs.getInt("interval", 800)
+        db = ProfileDb.get(this)
         setContentView(buildUi())
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        render()
-        updateMusicStatus()
+
+        val saved = prefs.getString(KEY_ADDRESS, null)
+        val single = saved?.let { ScanPlan.singleAddress(it) }
+        singleAddress = if (single != null) saved else null
+        usePlan(single ?: ScanPlan.full(db), restore = true)
     }
 
     override fun onResume() {
         super.onResume()
-        handler.removeCallbacks(statusLoop)
-        handler.post(statusLoop)
+        resumed = true
+        ticks = 0
+        handler.removeCallbacks(ticker)
+        handler.post(ticker)
     }
 
     override fun onPause() {
+        resumed = false
+        handler.removeCallbacks(ticker)
+        engine.stop()
+        save()
         super.onPause()
-        handler.removeCallbacks(statusLoop)
-        stopAuto()
-        prefs.edit().putInt("addr", address).putBoolean("ext", extended).putInt("cmd", command)
-            .putInt("mode", mode).putInt("interval", intervalMs).apply()
     }
 
     override fun onDestroy() {
@@ -163,233 +100,476 @@ class ScannerActivity : Activity() {
         super.onDestroy()
     }
 
+    private fun save() {
+        prefs.edit()
+            .putString(KEY_ADDRESS, singleAddress)
+            .putInt(KEY_INDEX, engine.index)
+            .putInt(KEY_SIZE, engine.plan.size)
+            .putLong(KEY_INTERVAL, engine.intervalMs)
+            .putBoolean(KEY_AUTO, engine.autoDetect)
+            .apply()
+    }
+
+    /** Installe un plan de recherche ; [restore] reprend là où la recherche s'était arrêtée. */
+    private fun usePlan(plan: ScanPlan, restore: Boolean) {
+        val previous = if (::engine.isInitialized) engine else null
+        previous?.stop()
+        engine = ScanEngine(plan, ir, probe, Deps.clock, this)
+        engine.intervalMs = previous?.intervalMs ?: prefs.getLong(KEY_INTERVAL, ScanEngine.DEFAULT_INTERVAL_MS)
+        engine.autoDetect = previous?.autoDetect ?: prefs.getBoolean(KEY_AUTO, true)
+        // On ne reprend la position que si la liste des essais est bien la même qu'à l'enregistrement.
+        if (restore && prefs.getInt(KEY_SIZE, -1) == plan.size) {
+            engine.index = prefs.getInt(KEY_INDEX, 0).coerceIn(0, plan.size)
+        }
+        if (intervalInput.text.toString() != engine.intervalMs.toString()) intervalInput.setText(engine.intervalMs.toString())
+        historyText.text = "—"
+        buildJumpRow()
+        render()
+    }
+
+    // ---------------------------------------------------------------- écran
+
     private fun buildUi(): View {
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(16), dp(16), dp(16))
-        }
-        root.addView(label("Scanner de codes", 22f).apply { typeface = android.graphics.Typeface.DEFAULT_BOLD })
-        root.addView(label("Lancez une musique depuis le Poco (en Bluetooth vers la barre), visez la barre avec le haut du téléphone et appuyez sur Auto. Le scan essaie toutes les commandes et toutes les adresses tout seul, et s'arrête quand la musique se met en pause.", 13f, muted = true), fullWidth().apply { bottomMargin = dp(12) })
+        val root = column().apply { setPadding(dp(16), dp(16), dp(16), dp(24)) }
 
-        current = label("", 30f).apply {
-            gravity = Gravity.CENTER
-            typeface = android.graphics.Typeface.MONOSPACE
+        root.addView(label("Recherche automatique", 22f).apply { typeface = Typeface.DEFAULT_BOLD })
+        root.addView(
+            label(
+                "1. Connectez le téléphone à la barre en Bluetooth et lancez une musique depuis le téléphone.\n" +
+                    "2. Posez le téléphone, le haut pointé vers la barre.\n" +
+                    "3. Appuyez sur Lancer. La recherche s'arrête toute seule dès que la barre réagit.",
+                13f, muted = true,
+            ),
+            fullWidth().apply { topMargin = dp(4) },
+        )
+        checks = label("", 13f)
+        root.addView(checks, fullWidth().apply { topMargin = dp(10) })
+
+        // Carte : essai en cours
+        val card = column().apply {
             setBackgroundResource(R.drawable.body_bg)
-            setPadding(dp(8), dp(20), dp(8), dp(20))
+            setPadding(dp(18), dp(16), dp(18), dp(16))
         }
-        root.addView(current, fullWidth())
-        progress = label("", 12f, muted = true).apply { gravity = Gravity.CENTER }
-        root.addView(progress, fullWidth().apply { topMargin = dp(4) })
+        phaseText = label("", 12f, muted = true)
+        detailText = label("", 17f).apply { typeface = Typeface.DEFAULT_BOLD }
+        codeText = label("", 22f).apply { typeface = Typeface.MONOSPACE }
+        progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal)
+        countText = label("", 12f, muted = true)
+        card.addView(phaseText, fullWidth())
+        card.addView(detailText, fullWidth().apply { topMargin = dp(6) })
+        card.addView(codeText, fullWidth().apply { topMargin = dp(2) })
+        card.addView(progress, fullWidth().apply { topMargin = dp(8) })
+        card.addView(countText, fullWidth())
+        root.addView(card, fullWidth().apply { topMargin = dp(12) })
 
-        // Champs
-        val fields = row().apply { setPadding(0, dp(12), 0, 0) }
-        addrInput = hexField("Adresse")
-        cmdInput = hexField("Commande")
+        stateText = label("", 14f).apply { setTextColor(getColor(R.color.ok)) }
+        root.addView(stateText, fullWidth().apply { topMargin = dp(8) })
+
+        startBtn = textButton("", R.drawable.key_accent, 17f).apply {
+            setOnClickListener { if (engine.running) engine.stop() else engine.start() }
+        }
+        root.addView(startBtn, LinearLayout.LayoutParams(-1, dp(60)).apply { topMargin = dp(6) })
+
+        val manual = row()
+        manual.addView(textButton("◀ Précédent", size = 13f).apply {
+            setOnClickListener { engine.sendManual(engine.index - 2) }
+        }, weighted(52))
+        manual.addView(textButton("Renvoyer", size = 13f).apply {
+            setOnClickListener { engine.sendManual(engine.index - 1) }
+        }, weighted(52))
+        manual.addView(textButton("Suivant ▶", size = 13f).apply {
+            setOnClickListener { engine.sendManual(engine.index) }
+        }, weighted(52))
+        root.addView(manual, fullWidth().apply { topMargin = dp(6) })
+
+        root.addView(textButton("✔ La barre a réagi !", R.drawable.key_bg, 16f).apply {
+            setOnClickListener { showCandidates(engine.manualDetection()) }
+        }, LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(6) })
+
+        root.addView(label("Derniers codes envoyés (le plus récent en haut) :", 13f, muted = true), fullWidth().apply { topMargin = dp(14) })
+        historyText = label("—", 13f).apply { typeface = Typeface.MONOSPACE }
+        root.addView(historyText, fullWidth())
+
+        // Réglages avancés (repliés)
+        root.addView(textButton("Réglages avancés", size = 13f).apply {
+            setOnClickListener { advanced.visibility = if (advanced.visibility == View.VISIBLE) View.GONE else View.VISIBLE }
+        }, LinearLayout.LayoutParams(-2, dp(44)).apply { topMargin = dp(16) })
+        advanced = column().apply { visibility = View.GONE; setPadding(0, dp(8), 0, 0) }
+        root.addView(advanced, fullWidth())
+
+        advanced.addView(label("Temps entre deux essais, en millisecondes (800 conseillé) :", 13f, muted = true))
         intervalInput = EditText(this).apply {
-            hint = "ms"; setText(intervalMs.toString())
             inputType = InputType.TYPE_CLASS_NUMBER
-            setTextColor(getColor(R.color.text)); setHintTextColor(getColor(R.color.muted))
-        }
-        fields.addView(column("Adresse (hex)", addrInput), LinearLayout.LayoutParams(0, -2, 1f))
-        fields.addView(column("Commande (hex)", cmdInput), LinearLayout.LayoutParams(0, -2, 1f))
-        fields.addView(column("Intervalle ms", intervalInput), LinearLayout.LayoutParams(0, -2, 1f))
-        root.addView(fields, fullWidth())
-
-        addrInput.addTextChangedListener(watcher { s ->
-            val v = s.toIntOrNull(16) ?: return@watcher
-            extended = s.length > 2
-            address = if (extended) v and 0xFFFF else v and 0xFF
-            renderCurrent()
-        })
-        cmdInput.addTextChangedListener(watcher { s ->
-            command = (s.toIntOrNull(16) ?: return@watcher) and 0xFF
-            renderCurrent()
-        })
-        intervalInput.addTextChangedListener(watcher { s ->
-            intervalMs = (s.toIntOrNull() ?: return@watcher).coerceIn(300, 10000)
-            render()
-        })
-
-        // Adresses courantes
-        root.addView(label("Adresses fréquentes :", 13f, muted = true), fullWidth().apply { topMargin = dp(10) })
-        val chips = row().apply { gravity = Gravity.START }
-        for (a in listOf("00", "01", "02", "04", "08", "10", "20", "40", "80", "6E", "FF", "7F80", "FF00", "BF40")) {
-            chips.addView(keyButton(a).apply {
-                textSize = 13f
-                setOnClickListener { setAddress(a); render() }
-            }, LinearLayout.LayoutParams(dp(64), dp(42)).apply { setMargins(dp(3), dp(3), dp(3), dp(3)) })
-        }
-        root.addView(HorizontalScrollView(this).apply { addView(chips); isHorizontalScrollBarEnabled = false }, fullWidth())
-
-        // Contrôles
-        val ctl = row().apply { setPadding(0, dp(10), 0, 0) }
-        ctl.addView(keyButton("◀").apply { setOnClickListener { stopAuto(); step(-1); render(); sendCurrent() } }, weighted(60, 4))
-        ctl.addView(keyButton("Envoyer").apply { setOnClickListener { sendCurrent() } }, weighted(60, 4))
-        ctl.addView(keyButton("▶").apply { setOnClickListener { stopAuto(); step(+1); render(); sendCurrent() } }, weighted(60, 4))
-        root.addView(ctl, fullWidth())
-
-        val ctl2 = row()
-        autoBtn = keyButton("Auto ▶").apply { setOnClickListener { if (running) stopAuto() else startAuto() } }
-        modeBtn = keyButton("").apply { textSize = 12f; setOnClickListener { mode = (mode + 1) % 3; render() } }
-        ctl2.addView(autoBtn, weighted(60, 4))
-        ctl2.addView(modeBtn, weighted(60, 4))
-        root.addView(ctl2, fullWidth())
-
-        val autoStop = android.widget.CheckBox(this).apply {
-            text = "Arrêter le scan dès que la musique se met en pause"
+            filters = arrayOf(InputFilter.LengthFilter(5))
             setTextColor(getColor(R.color.text))
-            isChecked = autoStopOnMusic
-            setOnCheckedChangeListener { _, c -> autoStopOnMusic = c }
+            addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+                override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+                override fun afterTextChanged(s: Editable?) {
+                    val v = s.toString().toLongOrNull() ?: return
+                    if (::engine.isInitialized) {
+                        engine.intervalMs = v.coerceIn(ScanEngine.MIN_INTERVAL_MS, ScanEngine.MAX_INTERVAL_MS)
+                        render()
+                    }
+                }
+            })
         }
-        root.addView(autoStop, fullWidth().apply { topMargin = dp(8) })
-        musicStatus = label("", 12f, muted = true)
-        root.addView(musicStatus, fullWidth())
+        advanced.addView(intervalInput, LinearLayout.LayoutParams(dp(120), -2))
 
-        root.addView(keyButton("✔ Ça a réagi : attribuer à une touche…", power = false).apply {
-            setBackgroundResource(R.drawable.key_power_rect)
-            setOnClickListener { stopAuto(); assign() }
-        }, LinearLayout.LayoutParams(-1, dp(60)).apply { setMargins(dp(4), dp(12), dp(4), dp(4)) })
+        advanced.addView(CheckBox(this).apply {
+            text = "S'arrêter tout seul quand la barre réagit"
+            setTextColor(getColor(R.color.text))
+            isChecked = prefs.getBoolean(KEY_AUTO, true)
+            setOnCheckedChangeListener { _, c -> engine.autoDetect = c; renderChecks() }
+        }, fullWidth())
 
-        root.addView(label("Derniers codes envoyés (du plus récent au plus ancien) :", 13f, muted = true), fullWidth().apply { topMargin = dp(12) })
-        history = label("—", 14f).apply { typeface = android.graphics.Typeface.MONOSPACE }
-        root.addView(history, fullWidth())
-        root.addView(label("Astuce : lancez une musique depuis le Poco, connecté en Bluetooth à la barre. Quand un code met la musique en pause (touche Lecture/Pause, Power, Source…), le scan s'arrête tout seul et vous propose d'attribuer le code.", 12f, muted = true), fullWidth().apply { topMargin = dp(10) })
+        advanced.addView(label("Aller directement à une étape :", 13f, muted = true), fullWidth().apply { topMargin = dp(10) })
+        jumpRow = row().apply { gravity = Gravity.LEFT }
+        advanced.addView(jumpRow, fullWidth())
+
+        modeText = label("", 13f, muted = true)
+        advanced.addView(modeText, fullWidth().apply { topMargin = dp(10) })
+        val modes = row().apply { gravity = Gravity.LEFT }
+        modes.addView(textButton("Une seule adresse…", size = 13f).apply {
+            setOnClickListener { askAddress() }
+        }, LinearLayout.LayoutParams(-2, dp(44)).apply { rightMargin = dp(8) })
+        modes.addView(textButton("Recherche complète", size = 13f).apply {
+            setOnClickListener { singleAddress = null; usePlan(ScanPlan.full(db), restore = false) }
+        }, LinearLayout.LayoutParams(-2, dp(44)))
+        advanced.addView(modes, fullWidth())
 
         return ScrollView(this).apply { addView(root) }
     }
 
-    private fun hexField(hintText: String) = EditText(this).apply {
-        hint = hintText
-        inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
-        typeface = android.graphics.Typeface.MONOSPACE
-        setTextColor(getColor(R.color.text)); setHintTextColor(getColor(R.color.muted))
-        filters = arrayOf(android.text.InputFilter.LengthFilter(4))
-    }
-
-    private fun column(title: String, v: View) = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL
-        setPadding(dp(4), 0, dp(4), 0)
-        addView(label(title, 12f, muted = true))
-        addView(v)
-    }
-
-    private fun watcher(onChange: (String) -> Unit) = object : TextWatcher {
-        override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
-        override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
-        override fun afterTextChanged(s: Editable?) { if (!updatingFields) onChange(s.toString().trim()) }
-    }
-
-    private fun setAddress(hex: String) {
-        extended = hex.length > 2
-        address = hex.toInt(16)
-    }
-
-    private fun code() = IrCode.Nec(address, extended, command)
-
-    /** Avance (ou recule) d'un cran. @return false si on dépasse les bornes. */
-    private fun step(d: Int): Boolean {
-        if (mode == MODE_ALL) {
-            val n = command + d
-            if (n in 0..0xFF) { command = n; return true }
-            // Fin (ou début) des commandes : on passe à l'adresse suivante (ou précédente).
-            val idx = if (extended) -1 else ADDRESS_ORDER.indexOf(address)
-            val next = idx + d
-            if (next < 0 || next >= ADDRESS_ORDER.size) return false
-            extended = false
-            address = ADDRESS_ORDER[next]
-            command = if (d > 0) 0x00 else 0xFF
-            return true
+    private fun buildJumpRow() {
+        jumpRow.removeAllViews()
+        for ((n, start) in engine.plan.phaseStarts.withIndex()) {
+            jumpRow.addView(textButton("Étape ${n + 1}", size = 13f).apply {
+                setOnClickListener { restartAt(start) }
+            }, LinearLayout.LayoutParams(-2, dp(44)).apply { rightMargin = dp(8) })
         }
-        if (sweepAddress) {
-            val max = if (extended) 0xFFFF else 0xFF
-            val n = address + d
-            if (n < 0 || n > max) return false
-            address = n
-        } else {
-            val n = command + d
-            if (n < 0 || n > 0xFF) return false
-            command = n
-        }
-        return true
     }
 
-    private fun sendCurrent() {
-        val c = code()
-        ir.send(c)
-        sent.addFirst(c.format())
-        while (sent.size > 6) sent.removeLast()
-        history.text = sent.joinToString("\n")
+    /** Repart de l'essai [index], historique effacé. */
+    private fun restartAt(index: Int) {
+        val plan = engine.plan
+        usePlan(plan, restore = false)
+        engine.index = index.coerceIn(0, plan.size)
         render()
     }
 
-    private fun startAuto() {
-        running = true
-        musicWasPlaying = audio.isMusicActive
-        render()
-        handler.post(tick)
-    }
-
-    private fun stopAuto() {
-        running = false
-        handler.removeCallbacks(tick)
-        handler.removeCallbacks(watch)
-        if (::autoBtn.isInitialized) render()
-    }
-
-    private fun renderCurrent() {
-        current.text = code().format().removePrefix("NEC:").let {
-            val p = it.split(":"); "Adr ${p[0]}  ·  Cmd ${p[1]}"
+    private fun askAddress() {
+        val input = EditText(this).apply {
+            hint = "20"
+            setText(singleAddress ?: (engine.lastSent?.code as? IrCode.Nec)?.addressText ?: "")
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            filters = arrayOf(InputFilter.LengthFilter(4))
         }
+        val box = column().apply {
+            setPadding(dp(20), dp(8), dp(20), 0)
+            addView(label("Adresse en hexadécimal : 2 chiffres (par exemple 20) ou 4 chiffres.", 13f, muted = true))
+            addView(input)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Chercher sur une seule adresse")
+            .setView(box)
+            .setPositiveButton("OK") { _, _ -> searchAddress(input.text.toString()) }
+            .setNegativeButton("Annuler", null).show()
     }
+
+    private fun searchAddress(address: String) {
+        val plan = ScanPlan.singleAddress(address)
+        if (plan == null) {
+            Toast.makeText(this, "Adresse invalide", Toast.LENGTH_SHORT).show()
+            return
+        }
+        singleAddress = address.trim().uppercase(Locale.US)
+        usePlan(plan, restore = false)
+    }
+
+    // ------------------------------------------------------------ affichage
 
     private fun render() {
-        renderCurrent()
-        updatingFields = true
-        val a = if (extended) String.format(Locale.US, "%04X", address) else String.format(Locale.US, "%02X", address)
-        val c = String.format(Locale.US, "%02X", command)
-        if (addrInput.text.toString() != a) addrInput.setText(a)
-        if (cmdInput.text.toString() != c) cmdInput.setText(c)
-        updatingFields = false
-        autoBtn.text = if (running) "⏸ Pause" else "Auto ▶"
-        modeBtn.text = when (mode) {
-            MODE_ALL -> "Balaye : TOUT\n(commandes + adresses)"
-            MODE_COMMAND -> "Balaye : COMMANDE\n(adresse fixe)"
-            else -> "Balaye : ADRESSE\n(commande fixe)"
+        val plan = engine.plan
+        val last = engine.lastSent
+        val shownIndex = (if (last != null) engine.index - 1 else engine.index).coerceIn(0, maxOf(0, plan.size - 1))
+        val step = last ?: plan[shownIndex]
+        val bounds = plan.groupBounds(shownIndex)
+        val position = shownIndex - bounds.first + 1
+        val count = bounds.last - bounds.first + 1
+        val group = if (plan.inSweep(shownIndex)) "pour cette adresse" else "de cette étape"
+
+        phaseText.text = "Étape ${step.phase + 1} sur ${plan.phaseTitles.size} · ${plan.phaseTitles[step.phase]}"
+        detailText.text = if (last == null) "Prochain essai : ${step.detail}" else step.detail
+        codeText.text = step.code.short()
+        progress.max = count
+        progress.progress = if (last == null) position - 1 else position
+        val minutes = (count - position) * engine.intervalMs / 60000.0
+        countText.text = "Essai $position sur $count $group" + when {
+            minutes < 1 -> ""
+            minutes < 90 -> String.format(Locale.FRANCE, " · encore environ %.0f min", minutes)
+            else -> String.format(Locale.FRANCE, " · encore environ %.0f h", minutes / 60)
         }
-        val perCode = intervalMs / 1000.0
-        progress.text = when (mode) {
-            MODE_ALL -> {
-                val idx = if (extended) -1 else ADDRESS_ORDER.indexOf(address)
-                val left = ((ADDRESS_ORDER.size - 1 - idx) * 256 + (255 - command)) * perCode / 60
-                val leftAddr = (255 - command) * perCode / 60
-                String.format(Locale.FRANCE, "Adresse %d / 256  ·  ~%.0f min pour finir cette adresse  ·  ~%.0f h pour tout", idx + 1, leftAddr, left / 60)
-            }
-            MODE_COMMAND -> String.format(Locale.FRANCE, "~%.0f min pour finir cette adresse", (255 - command) * perCode / 60)
-            else -> ""
+
+        val state = engine.statusText
+        stateText.text = state ?: ""
+        stateText.visibility = if (state == null) View.GONE else View.VISIBLE
+        startBtn.text = when {
+            engine.running -> "Pause"
+            engine.index == 0 -> "▶  Lancer la recherche"
+            else -> "▶  Reprendre la recherche"
+        }
+        modeText.text = singleAddress?.let { "Recherche limitée à l'adresse $it." } ?: "Recherche complète (toutes les adresses)."
+        renderChecks()
+    }
+
+    private fun renderChecks() {
+        val bt = probe.btConnected()
+        val music = probe.musicActive()
+        checks.text = when {
+            !engine.autoDetect -> "○ Arrêt automatique désactivé : appuyez sur « La barre a réagi » quand elle réagit."
+            !bt -> "○ Barre non connectée en Bluetooth : la recherche ne pourra pas s'arrêter toute seule."
+            !music -> "● Bluetooth connecté.\n○ Lancez maintenant une musique depuis le téléphone."
+            else -> "● Bluetooth connecté.\n● Musique en lecture : la recherche s'arrêtera toute seule."
+        }
+        checks.setTextColor(getColor(if (engine.autoDetect && bt && music) R.color.ok else R.color.text))
+    }
+
+    // ------------------------------------------------- réactions du moteur
+
+    override fun onSent(step: Step, verifying: Boolean) {
+        historyText.text = engine.recent.joinToString("\n") { step ->
+            step.code.short() + (step.profile?.let { "  ·  ${it.name}" } ?: "")
+        }.ifEmpty { "—" }
+        render()
+    }
+
+    override fun onChanged() = render()
+
+    override fun onFalseAlarm() {
+        Toast.makeText(this, "Fausse alerte : aucun code ne refait l'effet. La recherche continue.", Toast.LENGTH_LONG).show()
+    }
+
+    override fun onFinished() {
+        if (isFinishing) return
+        AlertDialog.Builder(this)
+            .setTitle("Recherche terminée")
+            .setMessage(
+                "Tous les codes de cette recherche ont été essayés sans réaction repérée.\n\n" +
+                    "Vérifiez que le haut du téléphone pointait bien vers la barre, puis recommencez, " +
+                    "ou essayez une autre adresse dans les réglages avancés."
+            )
+            .setPositiveButton("Recommencer") { _, _ -> restartAt(0) }
+            .setNegativeButton("Fermer", null).show()
+    }
+
+    override fun onDetected(detection: Detection) {
+        if (isFinishing) return
+        if (detection.confirmed && detection.candidates.size == 1 && detection.type != Detection.Type.DISCONNECT) {
+            chosen(detection.candidates[0], detection)
+        } else {
+            showCandidates(detection)
         }
     }
 
-    private fun assign() {
-        val candidates = sent.toList().ifEmpty { listOf(code().format()) }.distinct()
-        AlertDialog.Builder(this)
-            .setTitle("Quel code a fonctionné ?")
-            .setItems(candidates.toTypedArray()) { _, i -> pickKey(IrCode.parse(candidates[i])!!) }
-            .setNegativeButton("Annuler", null)
+    /** Liste les codes suspects : l'utilisateur les teste et désigne le bon. */
+    private fun showCandidates(d: Detection) {
+        if (d.candidates.isEmpty()) {
+            Toast.makeText(this, "Aucun code n'a encore été envoyé.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val (title, text) = when (d.type) {
+            Detection.Type.PAUSE -> Pair(
+                "La musique s'est arrêtée",
+                "Je n'ai pas pu vérifier tout seul quel code en est la cause. Relancez la musique, puis appuyez sur " +
+                    "« Tester » à côté de chaque code : celui qui la remet en pause est le bon.",
+            )
+            Detection.Type.DISCONNECT -> Pair(
+                "La barre a réagi : Bluetooth coupé",
+                "La barre s'est éteinte ou a changé de source juste après l'un de ces codes.\n\n" +
+                    "• Si elle est éteinte, « Tester » sur le bon code la rallume : c'est la touche Power.\n" +
+                    "• Si elle a changé de source (le voyant a changé de couleur), c'est la touche MODE.\n\n" +
+                    "Appuyez sur « C'est lui » à côté du code qui fait l'effet.",
+            )
+            Detection.Type.VOLUME_UP, Detection.Type.VOLUME_DOWN -> Pair(
+                "Le volume a changé",
+                "Appuyez sur « Tester » à côté de chaque code pour voir lequel change le volume.",
+            )
+            Detection.Type.MANUAL -> Pair(
+                "Quel code a fait réagir la barre ?",
+                "Voici les derniers codes envoyés. Appuyez sur « Tester » pour les renvoyer un par un, puis sur " +
+                    "« C'est lui » à côté de celui qui fait réagir la barre.",
+            )
+        }
+        val box = column().apply { setPadding(dp(20), dp(8), dp(20), 0) }
+        box.addView(label(text, 14f))
+        var dialog: AlertDialog? = null
+        for (step in d.candidates) {
+            val line = row().apply { gravity = Gravity.CENTER_VERTICAL }
+            val info = column()
+            info.addView(label(step.code.short(), 15f).apply { typeface = Typeface.MONOSPACE })
+            known(step, d.type)?.let { info.addView(label(it, 12f, muted = true)) }
+            line.addView(info, LinearLayout.LayoutParams(0, -2, 1f))
+            line.addView(textButton("Tester", size = 13f).apply {
+                setOnClickListener { ir.send(step.code) }
+            }, LinearLayout.LayoutParams(-2, dp(42)).apply { leftMargin = dp(6) })
+            line.addView(textButton("C'est lui", R.drawable.key_accent, 13f).apply {
+                setOnClickListener { dialog?.dismiss(); chosen(step, d) }
+            }, LinearLayout.LayoutParams(-2, dp(42)).apply { leftMargin = dp(6) })
+            box.addView(line, fullWidth().apply { topMargin = dp(12) })
+        }
+        dialog = AlertDialog.Builder(this)
+            .setTitle(title)
+            .setView(ScrollView(this).apply { addView(box) })
+            .setPositiveButton("Continuer la recherche") { _, _ -> engine.start() }
+            .setNegativeButton("Fermer", null)
             .show()
     }
 
-    private fun pickKey(code: IrCode) {
+    /** Les télécommandes connues qui ont ce code sur une touche qui colle avec l'effet observé. */
+    private fun agreeing(step: Step, type: Detection.Type): List<Pair<Profile, String>> {
+        val all = db.matches(step.code).filter { agrees(type, it.second) }
+        // En tête : la télécommande pour laquelle ce code a été essayé.
+        return all.sortedBy { it.first !== step.profile }
+    }
+
+    /** Ce qu'on sait d'un code grâce aux télécommandes connues. */
+    private fun known(step: Step, type: Detection.Type): String? {
+        val (profile, function) = agreeing(step, type).firstOrNull() ?: db.matches(step.code).firstOrNull() ?: return null
+        return "connu : « ${keyName(function)} » sur ${profile.name}"
+    }
+
+    /**
+     * La télécommande identique, recopiée sur l'adresse de [step] : même télécommande, mais
+     * réglée en usine pour une autre marque. Null si [step] ne colle pas avec cette hypothèse.
+     */
+    private fun twinOnAddressOf(step: Step, type: Detection.Type): Profile? {
+        val twin = db.twin ?: return null
+        val nec = step.code as? IrCode.Nec ?: return null
+        if (!nec.standardCommand) return null
+        val twinCodes = twin.codes.mapValues { it.value as? IrCode.Nec ?: return null }
+        if (twinCodes.values.any { !it.standardCommand }) return null
+        if (twinCodes.values.first().addressText == nec.addressText) return null
+        // Le code trouvé doit être, sur la télécommande identique, une touche qui fait l'effet observé.
+        if (twinCodes.none { it.value.c0 == nec.c0 && agrees(type, it.key) }) return null
+        val moved = twinCodes.mapValues { IrCode.Nec(nec.a0, nec.a1, it.value.c0, it.value.c1) as IrCode }
+        return Profile("${twin.name} · adresse ${nec.addressText}", twin.category, twin.score, twin.matched, twin.total, false, moved)
+    }
+
+    /** La touche que l'effet observé désigne, si on peut le dire. */
+    private fun observedKey(type: Detection.Type): String? = when (type) {
+        Detection.Type.PAUSE -> Keys.PLAY.id
+        Detection.Type.VOLUME_UP -> Keys.VOL_UP.id
+        Detection.Type.VOLUME_DOWN -> Keys.VOL_DOWN.id
+        else -> null
+    }
+
+    /** Vrai si la touche [function] d'une télécommande connue colle avec l'effet observé. */
+    private fun agrees(type: Detection.Type, function: String): Boolean = when (type) {
+        Detection.Type.PAUSE -> function == Keys.PLAY.id
+        Detection.Type.VOLUME_UP -> function == Keys.VOL_UP.id
+        Detection.Type.VOLUME_DOWN -> function == Keys.VOL_DOWN.id
+        Detection.Type.DISCONNECT -> function == Keys.POWER.id || function == Keys.MODE.id
+        Detection.Type.MANUAL -> true
+    }
+
+    /** Le bon code est connu : propose la télécommande entière, sinon range ce seul code. */
+    private fun chosen(step: Step, d: Detection) {
+        val effect = when (d.type) {
+            Detection.Type.PAUSE -> "met la musique en pause"
+            Detection.Type.VOLUME_UP -> "monte le volume"
+            Detection.Type.VOLUME_DOWN -> "baisse le volume"
+            Detection.Type.DISCONNECT -> "éteint la barre ou change sa source"
+            Detection.Type.MANUAL -> "fait réagir la barre"
+        }
+        val checked = if (d.confirmed) " (vérifié : renvoyé une 2ᵉ fois, il a refait le même effet)" else ""
+        val found = "Le code ${step.code.short()} $effect$checked."
+        val suggested = observedKey(d.type) ?: step.function
+
+        // Télécommandes entières qui expliquent ce code, de la plus probable à la moins probable.
+        val options = ArrayList<Pair<Profile, String>>()
+        for ((profile, function) in agreeing(step, d.type).take(3)) {
+            options += Pair(profile, "C'est la touche « ${keyName(function)} » de la télécommande « ${profile.name} » (${profile.description}).")
+        }
+        twinOnAddressOf(step, d.type)?.let {
+            options += Pair(it, "Ce serait la télécommande identique à la vôtre, mais réglée sur l'adresse ${(step.code as IrCode.Nec).addressText}.")
+        }
+        if (options.isEmpty()) {
+            pickKey(step, suggested, found)
+            return
+        }
+
+        val box = column().apply { setPadding(dp(20), dp(8), dp(20), dp(4)) }
+        box.addView(label("$found\n\nJe peux charger d'un coup toutes les touches de la télécommande qui correspond :", 14f))
+        var dialog: AlertDialog? = null
+        for ((profile, why) in options) {
+            box.addView(label(why, 12f, muted = true), fullWidth().apply { topMargin = dp(12) })
+            box.addView(textButton("Charger les ${profile.keyCount} touches", R.drawable.key_accent, 14f).apply {
+                setOnClickListener {
+                    dialog?.dismiss()
+                    val n = store.loadProfile(profile, verified = d.confirmed)
+                    Toast.makeText(this@ScannerActivity, "$n touches chargées (${profile.name}). Essayez-les !", Toast.LENGTH_LONG).show()
+                    finish()
+                }
+            }, LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(4) })
+        }
+        dialog = AlertDialog.Builder(this)
+            .setTitle("Code trouvé !")
+            .setView(ScrollView(this).apply { addView(box) })
+            .setNegativeButton("Seulement cette touche") { _, _ -> pickKey(step, suggested, null) }
+            .show()
+    }
+
+    /** Range [step] sur une touche de la télécommande. */
+    private fun pickKey(step: Step, suggested: String?, intro: String?) {
         val keys = Keys.all
-        val labels = keys.map { k -> k.label + (store.get(k)?.let { "   (${it.format()})" } ?: "") }.toTypedArray()
+        val labels = keys.map { k -> k.label + (store.get(k)?.let { "   — déjà : ${it.short()}" } ?: "") }.toTypedArray()
+        var selected = keys.indexOfFirst { it.id == suggested }
+        // Titre sur mesure : le titre standard est coupé au bout de deux lignes.
+        val title = column().apply {
+            setPadding(dp(24), dp(20), dp(24), dp(4))
+            addView(label("Sur quelle touche ranger ${step.code.short()} ?", 18f).apply { typeface = Typeface.DEFAULT_BOLD })
+            if (intro != null) addView(label(intro, 13f, muted = true), fullWidth().apply { topMargin = dp(6) })
+        }
         AlertDialog.Builder(this)
-            .setTitle("Attribuer ${code.format()} à…")
-            .setItems(labels) { _, i ->
-                store.set(keys[i], code)
-                Toast.makeText(this, "${code.format()} → ${keys[i].label}", Toast.LENGTH_SHORT).show()
-                // On passe en mode commande sur cette adresse pour trouver les touches suivantes.
-                if (code is IrCode.Nec && mode != MODE_COMMAND) { mode = MODE_COMMAND; address = code.address; extended = code.extended; render() }
+            .setCustomTitle(title)
+            .setSingleChoiceItems(labels, selected) { _, i -> selected = i }
+            .setPositiveButton("Enregistrer") { _, _ ->
+                if (selected < 0) {
+                    Toast.makeText(this, "Aucune touche choisie.", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                store.set(keys[selected], step.code)
+                store.profileName = null
+                store.verified = true
+                Toast.makeText(this, "${step.code.short()} → ${keyName(keys[selected].id)}", Toast.LENGTH_SHORT).show()
+                offerSameAddress(step)
             }
             .setNegativeButton("Annuler", null)
             .show()
+    }
+
+    /** Une touche est trouvée : les autres ont presque toujours la même adresse. */
+    private fun offerSameAddress(step: Step) {
+        val nec = step.code as? IrCode.Nec ?: return
+        if (!nec.standardCommand || singleAddress == nec.addressText) return
+        AlertDialog.Builder(this)
+            .setTitle("Chercher les autres touches ?")
+            .setMessage(
+                "Les autres touches utilisent presque toujours la même adresse (${nec.addressText}).\n\n" +
+                    "Je peux essayer ses 256 commandes une par une. Avancez avec « Suivant ▶ » en regardant et en " +
+                    "écoutant la barre ; quand elle réagit, appuyez sur « La barre a réagi »."
+            )
+            .setPositiveButton("Chercher les autres touches") { _, _ -> searchAddress(nec.addressText) }
+            .setNegativeButton("Plus tard", null)
+            .show()
+    }
+
+    private companion object {
+        const val KEY_ADDRESS = "address"
+        const val KEY_INDEX = "index"
+        const val KEY_SIZE = "size"
+        const val KEY_INTERVAL = "interval"
+        const val KEY_AUTO = "auto"
     }
 }

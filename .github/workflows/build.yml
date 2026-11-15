@@ -17,3 +17,5 @@ jobs:
         with:
           name: aiwa-asb060-remote
           path: app/build/outputs/apk/release/app-release.apk
+      # Après l'envoi de l'APK, pour qu'il soit disponible même si un test échoue.
+      - run: ./gradlew testDebugUnitTest
