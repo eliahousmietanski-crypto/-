@@ -82,7 +82,9 @@ nav.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: 
 .total .v { font-family: var(--display); font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .total.a .v { color: var(--ase); } .total.l .v { color: var(--lo); } .total.r .v { color: var(--rab); }
 
-.main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 20px; align-items: start; }
+#day { order: -1; }
+@media (max-width: 640px) { .brand p { display: none; } .brand h1 { font-size: 1.6rem; } }
 @media (max-width: 920px) { .main { grid-template-columns: minmax(0, 1fr); } }
 
 .months { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
@@ -235,8 +237,6 @@ footer p { margin: 0; }
     <button role="tab" id="tabEv" aria-selected="false">Fêtes et jeûnes</button>
   </nav>
 
-  <section class="totals" id="totals"></section>
-
   <section id="viewCal" class="main">
     <div>
       <div class="months" id="months"></div>
@@ -282,6 +282,8 @@ footer p { margin: 0; }
   <section id="viewEv" class="panel" hidden>
     <div class="evlist" id="evList"></div>
   </section>
+
+  <section class="totals" id="totals" aria-label="Totaux de l’année"></section>
 
   <footer>
     <p>Le jour hébraïque commence la veille au coucher du soleil. Une mitsva « de la nuit » (Séder, bougie de ‘Hanoucca, compte du Omer) s’accomplit donc le soir qui précède la date civile affichée.</p>
