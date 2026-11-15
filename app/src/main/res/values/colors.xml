@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#FF121417</color>
+    <color name="body">#FF1E2126</color>
+    <color name="key">#FF2C3038</color>
+    <color name="key_pressed">#FF4A5160</color>
+    <color name="accent">#FFE53935</color>
+    <color name="text">#FFECEFF1</color>
+    <color name="muted">#FF8A939E</color>
+</resources>
