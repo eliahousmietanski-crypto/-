@@ -311,8 +311,8 @@ const M613 = [
 ["A11","P","m","ללמד תורה וללמדה","Étudier la Torah et l’enseigner","Dt 6:7"],
 ["A12","P","m","לקשר תפלין בראש","Mettre les tefillin de la tête","Dt 6:8"],
 ["A13","P","m","לקשר תפלין ביד","Mettre les tefillin du bras","Dt 6:8"],
-["A14","P","m","לעשות ציצית","Porter les tsitsit sur un vêtement à quatre coins","Nb 15:38"],
-["A15","P","","לקבע מזוזה","Fixer une mezouza aux portes de sa maison","Dt 6:9"],
+["A14","C","m","לעשות ציצית","Porter les tsitsit sur un vêtement à quatre coins","Nb 15:38"],
+["A15","C","","לקבע מזוזה","Fixer une mezouza aux portes de sa maison","Dt 6:9"],
 ["A16","X:T","","להקהיל את העם לשמע תורה במוצאי שביעית","Rassembler le peuple pour la lecture de la Torah après l’année de chemita (Hakhel)","Dt 31:12"],
 ["A17","C","m","לכתב כל איש ספר תורה לעצמו","Écrire un Séfer Torah pour soi","Dt 31:19"],
 ["A18","X:R","","לכתב המלך ספר תורה לעצמו, יתר על האחד שלכל אדם, עד שיהיה לו שתי תורות","Pour le roi, écrire un second Séfer Torah","Dt 17:18"],
@@ -950,7 +950,7 @@ for (const [id, cat, pop, he, fr, src] of M613) {
 for (const [id, m] of Object.entries(RAB)) MZ[id] = Object.assign(m, { id, t: "R", num: null, cat: "R", x: "", pop: m.fx ? "m" : "" });
 const STATIC_NOTES = {
   A5: "Matin, après-midi et soir : le nombre et les horaires des prières sont fixés par les Sages",
-  A10: "Le soir et le matin", A12: "En semaine, le jour", A13: "En semaine, le jour", A14: "Le jour",
+  A10: "Le soir et le matin", A12: "En semaine, le jour", A13: "En semaine, le jour", A14: "Obligatoire seulement si l’on porte, le jour, un vêtement à quatre coins ; il est louable d’en porter un pour accomplir la mitsva (Rambam, Tsitsit 3:11)", A15: "Obligatoire pour qui habite une maison ou un logement permanent",
   A19: "Après un repas comportant du pain", A146: "Avant de manger de la viande ou de la volaille",
 };
 const CAT_LABEL = { P: "Permanente", C: "Selon les circonstances", D: "Liée à une date", I: "Terre d’Israël", S: "Année de chemita", X: "Non applicable aujourd’hui", R: "Dérabbanan" };
