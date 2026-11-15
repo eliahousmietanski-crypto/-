@@ -14,7 +14,7 @@ Le Poco X5 peut **émettre** de l'infrarouge, mais il n'a pas de **récepteur** 
 
 1. Connectez le Poco à la barre en **Bluetooth**, lancez une musique depuis le téléphone, puis ouvrez **Scanner**.
    Dès qu'un code met la musique en pause (Lecture/Pause, Power, Source…), le scan **s'arrête tout seul** et propose d'attribuer ce code à une touche.
-2. Choisissez une adresse (commencez par `00`, puis les autres adresses proposées) et lancez **Auto ▶**. L'appli envoie les commandes `00` à `FF` une par une.
+2. Appuyez sur **Auto ▶** (mode **Balaye : TOUT**). L'appli essaie toutes les commandes `00` à `FF` d'une adresse, puis passe toute seule à l'adresse suivante (les plus courantes d'abord).
 3. Quand la barre réagit (volume, changement de source, extinction…), appuyez sur **⏸ Pause**. Revenez avec **◀** et appuyez sur **Envoyer** pour retrouver le code exact.
 4. Appuyez sur **✔ Ça a réagi** et choisissez la touche correspondante.
 5. Les autres touches utilisent presque toujours la **même adresse** : relancez le balayage des commandes sur cette adresse et attribuez chaque touche.

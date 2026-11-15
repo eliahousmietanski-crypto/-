@@ -35,7 +35,20 @@ class ScannerActivity : Activity() {
     private var address = 0x00
     private var extended = false
     private var command = 0x00
-    private var sweepAddress = false
+    /** 0 = TOUT (commandes puis adresse suivante), 1 = COMMANDE seule, 2 = ADRESSE seule */
+    private var mode = MODE_ALL
+    private val sweepAddress get() = mode == MODE_ADDRESS
+    private lateinit var progress: TextView
+
+    companion object {
+        const val MODE_ALL = 0
+        const val MODE_COMMAND = 1
+        const val MODE_ADDRESS = 2
+        /** Ordre des adresses en mode TOUT : les plus courantes d'abord, puis toutes les autres. */
+        val ADDRESS_ORDER: List<Int> = listOf(0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x6E, 0xFF).let { f ->
+            f + (0..0xFF).filter { it !in f }
+        }
+    }
     private var intervalMs = 1500
     private var running = false
 
@@ -76,7 +89,7 @@ class ScannerActivity : Activity() {
             }
             updateMusicStatus()
             if (System.currentTimeMillis() - sentAt >= intervalMs) {
-                if (!step(+1)) { stopAuto(); Toast.makeText(this@ScannerActivity, "Fin du balayage (FF)", Toast.LENGTH_SHORT).show(); return }
+                if (!step(+1)) { stopAuto(); Toast.makeText(this@ScannerActivity, "Balayage terminé", Toast.LENGTH_SHORT).show(); return }
                 render()
                 handler.post(tick)
             } else handler.postDelayed(this, 100)
@@ -95,12 +108,12 @@ class ScannerActivity : Activity() {
     /** La musique vient de s'arrêter : le code qui vient de partir est le bon (ou celui d'avant). */
     private fun musicStopped() {
         stopAuto()
-        val candidates = sent.take(2)
+        val candidates = sent.take(if (intervalMs < 1000) 3 else 2)
         val found = candidates.firstOrNull() ?: return
         AlertDialog.Builder(this)
             .setTitle("La musique s'est arrêtée !")
             .setMessage("Code envoyé juste avant : $found" +
-                (if (candidates.size > 1) "\n(si ce n'est pas lui, c'est ${candidates[1]})" else "") +
+                (if (candidates.size > 1) "\n(si ce n'est pas lui : ${candidates.drop(1).joinToString(" ou ")})" else "") +
                 "\n\nRelancez la musique puis appuyez sur « Tester » pour vérifier qu'il remet bien en pause.")
             .setPositiveButton("Attribuer à une touche") { _, _ -> pickKey(IrCode.parse(found)!!) }
             .setNeutralButton("Tester") { _, _ -> testCode(found) }
@@ -123,8 +136,8 @@ class ScannerActivity : Activity() {
         address = prefs.getInt("addr", 0)
         extended = prefs.getBoolean("ext", false)
         command = prefs.getInt("cmd", 0)
-        sweepAddress = prefs.getBoolean("sweepAddr", false)
-        intervalMs = prefs.getInt("interval", 1500)
+        mode = prefs.getInt("mode", MODE_ALL)
+        intervalMs = prefs.getInt("interval", 800)
         setContentView(buildUi())
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         render()
@@ -142,7 +155,7 @@ class ScannerActivity : Activity() {
         handler.removeCallbacks(statusLoop)
         stopAuto()
         prefs.edit().putInt("addr", address).putBoolean("ext", extended).putInt("cmd", command)
-            .putBoolean("sweepAddr", sweepAddress).putInt("interval", intervalMs).apply()
+            .putInt("mode", mode).putInt("interval", intervalMs).apply()
     }
 
     override fun onDestroy() {
@@ -156,7 +169,7 @@ class ScannerActivity : Activity() {
             setPadding(dp(16), dp(16), dp(16), dp(16))
         }
         root.addView(label("Scanner de codes", 22f).apply { typeface = android.graphics.Typeface.DEFAULT_BOLD })
-        root.addView(label("Visez la barre de son avec le haut du téléphone, barre allumée. Commencez par chercher VOL+ ou Power : c'est le plus visible.", 13f, muted = true), fullWidth().apply { bottomMargin = dp(12) })
+        root.addView(label("Lancez une musique depuis le Poco (en Bluetooth vers la barre), visez la barre avec le haut du téléphone et appuyez sur Auto. Le scan essaie toutes les commandes et toutes les adresses tout seul, et s'arrête quand la musique se met en pause.", 13f, muted = true), fullWidth().apply { bottomMargin = dp(12) })
 
         current = label("", 30f).apply {
             gravity = Gravity.CENTER
@@ -165,6 +178,8 @@ class ScannerActivity : Activity() {
             setPadding(dp(8), dp(20), dp(8), dp(20))
         }
         root.addView(current, fullWidth())
+        progress = label("", 12f, muted = true).apply { gravity = Gravity.CENTER }
+        root.addView(progress, fullWidth().apply { topMargin = dp(4) })
 
         // Champs
         val fields = row().apply { setPadding(0, dp(12), 0, 0) }
@@ -192,6 +207,7 @@ class ScannerActivity : Activity() {
         })
         intervalInput.addTextChangedListener(watcher { s ->
             intervalMs = (s.toIntOrNull() ?: return@watcher).coerceIn(300, 10000)
+            render()
         })
 
         // Adresses courantes
@@ -214,7 +230,7 @@ class ScannerActivity : Activity() {
 
         val ctl2 = row()
         autoBtn = keyButton("Auto ▶").apply { setOnClickListener { if (running) stopAuto() else startAuto() } }
-        modeBtn = keyButton("").apply { textSize = 13f; setOnClickListener { sweepAddress = !sweepAddress; render() } }
+        modeBtn = keyButton("").apply { textSize = 12f; setOnClickListener { mode = (mode + 1) % 3; render() } }
         ctl2.addView(autoBtn, weighted(60, 4))
         ctl2.addView(modeBtn, weighted(60, 4))
         root.addView(ctl2, fullWidth())
@@ -272,6 +288,18 @@ class ScannerActivity : Activity() {
 
     /** Avance (ou recule) d'un cran. @return false si on dépasse les bornes. */
     private fun step(d: Int): Boolean {
+        if (mode == MODE_ALL) {
+            val n = command + d
+            if (n in 0..0xFF) { command = n; return true }
+            // Fin (ou début) des commandes : on passe à l'adresse suivante (ou précédente).
+            val idx = if (extended) -1 else ADDRESS_ORDER.indexOf(address)
+            val next = idx + d
+            if (next < 0 || next >= ADDRESS_ORDER.size) return false
+            extended = false
+            address = ADDRESS_ORDER[next]
+            command = if (d > 0) 0x00 else 0xFF
+            return true
+        }
         if (sweepAddress) {
             val max = if (extended) 0xFFFF else 0xFF
             val n = address + d
@@ -323,7 +351,22 @@ class ScannerActivity : Activity() {
         if (cmdInput.text.toString() != c) cmdInput.setText(c)
         updatingFields = false
         autoBtn.text = if (running) "⏸ Pause" else "Auto ▶"
-        modeBtn.text = if (sweepAddress) "Balaye : ADRESSE" else "Balaye : COMMANDE"
+        modeBtn.text = when (mode) {
+            MODE_ALL -> "Balaye : TOUT\n(commandes + adresses)"
+            MODE_COMMAND -> "Balaye : COMMANDE\n(adresse fixe)"
+            else -> "Balaye : ADRESSE\n(commande fixe)"
+        }
+        val perCode = intervalMs / 1000.0
+        progress.text = when (mode) {
+            MODE_ALL -> {
+                val idx = if (extended) -1 else ADDRESS_ORDER.indexOf(address)
+                val left = ((ADDRESS_ORDER.size - 1 - idx) * 256 + (255 - command)) * perCode / 60
+                val leftAddr = (255 - command) * perCode / 60
+                String.format(Locale.FRANCE, "Adresse %d / 256  ·  ~%.0f min pour finir cette adresse  ·  ~%.0f h pour tout", idx + 1, leftAddr, left / 60)
+            }
+            MODE_COMMAND -> String.format(Locale.FRANCE, "~%.0f min pour finir cette adresse", (255 - command) * perCode / 60)
+            else -> ""
+        }
     }
 
     private fun assign() {
@@ -344,7 +387,7 @@ class ScannerActivity : Activity() {
                 store.set(keys[i], code)
                 Toast.makeText(this, "${code.format()} → ${keys[i].label}", Toast.LENGTH_SHORT).show()
                 // On passe en mode commande sur cette adresse pour trouver les touches suivantes.
-                if (code is IrCode.Nec && sweepAddress) { sweepAddress = false; render() }
+                if (code is IrCode.Nec && mode != MODE_COMMAND) { mode = MODE_COMMAND; address = code.address; extended = code.extended; render() }
             }
             .setNegativeButton("Annuler", null)
             .show()
