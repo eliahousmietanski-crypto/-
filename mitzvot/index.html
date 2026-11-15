@@ -47,6 +47,8 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
+.day > * { flex-shrink: 0; }
 body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
 .wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 20px; }
 .he { font-family: var(--display); direction: rtl; unicode-bidi: isolate; }
@@ -168,6 +170,35 @@ td .he { font-weight: 700; font-size: 1rem; }
 .evrow .hd { color: var(--tekhelet); }
 .evrow .cnt { font-size: 0.8rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) { .evrow { grid-template-columns: minmax(0, 1fr) auto; } .evrow .hd { text-align: right; } }
+
+.bk { font-size: 0.85rem; }
+.bk th, .bk td { padding: 5px 8px; }
+.bk thead th { position: static; }
+.bk th[scope="row"] { text-transform: none; letter-spacing: 0; font-size: 0.85rem; color: var(--ink); font-weight: 600; background: transparent; }
+.bk tr.dim th[scope="row"], .bk tr.dim td { color: var(--muted); }
+.bk tr.sum th, .bk tr.sum td { font-weight: 700; border-top: 2px solid var(--line); }
+.bk td.num:nth-child(2) { color: var(--ase); } .bk td.num:nth-child(3) { color: var(--lo); }
+.bk thead th.num { text-align: right; }
+ul.mz li .hq { font-size: 0.92rem; font-weight: 500; color: var(--muted); text-align: right; }
+ul.mz li.tA .n { color: var(--ase); } ul.mz li.tL .n { color: var(--lo); } ul.mz li.tR .n { color: var(--rab); }
+ul.mz li .t .row1 .fr { font-weight: 600; }
+.groups { display: flex; flex-direction: column; gap: 8px; }
+details.grp { border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; }
+details.grp[open] { padding-bottom: 12px; }
+details.grp summary { cursor: pointer; display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; font-weight: 700; list-style: none; }
+details.grp summary::-webkit-details-marker { display: none; }
+details.grp summary::before { content: "›"; display: inline-block; margin-right: 8px; transition: transform .15s; color: var(--muted); }
+details.grp[open] summary::before { transform: rotate(90deg); }
+details.grp summary > span:first-child { flex: 1; }
+details.grp .cnt { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ca { color: var(--ase); } .cl { color: var(--lo); }
+details.grp h5 { margin: 12px 0 6px; font-size: 0.85rem; display: flex; justify-content: space-between; gap: 8px; }
+details.grp h5 small { color: var(--muted); font-weight: 600; }
+details.grp h5.ca, details.grp h5.cl { font-family: var(--display); font-size: 1rem; }
+.gdesc { margin: 0 0 4px; color: var(--muted); font-size: 0.85rem; }
+.g-prof, .g-nonapp, .g-other { background: var(--bg); }
+select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.muted { color: var(--muted); font-size: 0.85rem; }
 footer { color: var(--muted); font-size: 0.82rem; max-width: 80ch; display: flex; flex-direction: column; gap: 6px; }
 footer p { margin: 0; }
 @media (prefers-reduced-motion: no-preference) { .cell { transition: filter .12s; } }
@@ -177,7 +208,7 @@ footer p { margin: 0; }
   <header class="top">
     <div class="brand">
       <h1><span>Louah HaMitsvot</span> <span class="he">לוח המצוות</span></h1>
-      <p>Les <span class="he">מצוות עשה</span> et <span class="he">לא תעשה</span> qui s’appliquent chaque jour de l’année, comptées et répertoriées, avec les mitsvot de nos Sages.</p>
+      <p>Les 613 mitsvot, les 248 <span class="he">מצוות עשה</span> et les 365 <span class="he">מצוות לא תעשה</span>, réparties pour chaque jour de l’année : celles du jour, les permanentes, celles qui dépendent des circonstances et celles qui ne s’appliquent pas aujourd’hui.</p>
     </div>
     <div class="controls">
       <div class="yearnav" aria-label="Année">
@@ -189,11 +220,11 @@ footer p { margin: 0; }
         <button id="oIsr" aria-pressed="false">Israël</button>
         <button id="oDias" aria-pressed="true">Diaspora</button>
       </div>
-      <div class="seg" role="group" aria-label="Profil">
-        <button id="oMen" aria-pressed="true">Homme</button>
-        <button id="oWomen" aria-pressed="false">Femme</button>
+      <div class="seg" role="group" aria-label="Profil" id="profile">
+        <button data-p="h" aria-pressed="true">Homme</button>
+        <button data-p="f" aria-pressed="false">Femme</button>
+        <button data-p="k" aria-pressed="false">Cohen</button>
       </div>
-      <label class="chk"><input type="checkbox" id="oPerm" checked> Mitsvot permanentes</label>
       <button class="btn" id="goToday">Aujourd’hui</button>
     </div>
   </header>
@@ -224,16 +255,26 @@ footer p { margin: 0; }
 
   <section id="viewRepo" class="panel" hidden>
     <div class="repo-tools">
-      <input id="q" type="search" placeholder="Rechercher : chofar, ‘hamets, שבת, Lv 23…" aria-label="Rechercher une mitsva">
-      <div class="seg" role="group" aria-label="Filtrer par type">
+      <input id="q" type="search" placeholder="Rechercher : chofar, ‘hamets, שבת, Lv 23, Temple…" aria-label="Rechercher une mitsva">
+      <div class="seg" role="group" aria-label="Filtrer par type" id="typeSeg">
         <button data-f="all" aria-pressed="true">Toutes</button>
         <button data-f="A" aria-pressed="false">Asé</button>
         <button data-f="L" aria-pressed="false">Lo ta’asé</button>
         <button data-f="R" aria-pressed="false">Dérabbanan</button>
       </div>
+      <select id="catSel" aria-label="Filtrer par catégorie">
+        <option value="all">Toutes les catégories</option>
+        <option value="P">Permanentes</option>
+        <option value="C">Selon les circonstances</option>
+        <option value="D">Liées à une date</option>
+        <option value="I">Terre d’Israël</option>
+        <option value="S">Année de chemita</option>
+        <option value="X">Non applicables aujourd’hui</option>
+      </select>
+      <span id="repoCount" class="muted"></span>
     </div>
     <div class="tablewrap"><table>
-      <thead><tr><th>Type</th><th>N°</th><th>Mitsva</th><th>Source</th><th style="text-align:right">Jours en <span class="yy"></span></th></tr></thead>
+      <thead><tr><th>Type</th><th>N°</th><th>Mitsva</th><th>Catégorie</th><th>Source</th><th style="text-align:right">Jours applicables en <span class="yy"></span></th></tr></thead>
       <tbody id="repoBody"></tbody>
     </table></div>
   </section>
@@ -244,91 +285,633 @@ footer p { margin: 0; }
 
   <footer>
     <p>Le jour hébraïque commence la veille au coucher du soleil. Une mitsva « de la nuit » (Séder, bougie de ‘Hanoucca, compte du Omer) s’accomplit donc le soir qui précède la date civile affichée.</p>
-    <p>Numérotation selon le Séfer HaMitsvot du Rambam. Seules les mitsvot applicables aujourd’hui (sans le Temple) sont retenues. La liste des mitsvot permanentes est une sélection des principales obligations constantes, pas l’inventaire complet des 613. Pour la pratique, consultez votre rav.</p>
+    <p>Liste et numérotation du Rambam (introduction du Michné Torah, texte hébreu de Wikisource via Sefaria). Le classement de chaque mitsva (permanente, selon les circonstances, Terre d’Israël, non applicable sans le Temple…) suit les grandes lignes de la halakha ; sur plusieurs points les décisionnaires divergent. Pour la pratique, consultez votre rav.</p>
   </footer>
 </div>
 
 <script>
 /* ===================== Données ===================== */
-// t: A = מצוות עשה, L = מצוות לא תעשה, R = דרבנן ; fx: femmes dispensées (mitsva liée au temps)
-const MZ = {
-  A1:  { he: "האמונה במציאות ה׳", fr: "Savoir que Dieu existe", src: "Ex 20:2" },
-  A2:  { he: "ייחוד ה׳", fr: "Proclamer l’unité de Dieu", src: "Dt 6:4" },
-  A3:  { he: "אהבת ה׳", fr: "Aimer Dieu", src: "Dt 6:5" },
-  A4:  { he: "יראת ה׳", fr: "Craindre Dieu", src: "Dt 6:13" },
-  A5:  { he: "תפילה", fr: "Servir Dieu par la prière", src: "Ex 23:25" },
-  A6:  { he: "לדבקה בחכמים", fr: "S’attacher aux sages de la Torah", src: "Dt 10:20" },
-  A8:  { he: "והלכת בדרכיו", fr: "Marcher dans Ses voies", src: "Dt 28:9" },
-  A9:  { he: "קידוש השם", fr: "Sanctifier le Nom de Dieu", src: "Lv 22:32" },
-  A10: { he: "קריאת שמע", fr: "Réciter le Chema matin et soir", src: "Dt 6:7", fx: 1 },
-  A11: { he: "תלמוד תורה", fr: "Étudier et enseigner la Torah", src: "Dt 6:7", fx: 1 },
-  A12: { he: "תפילין של ראש", fr: "Mettre les tefillin de la tête", src: "Dt 6:8", fx: 1, note: "Pas le Chabbat ni le Yom Tov" },
-  A13: { he: "תפילין של יד", fr: "Mettre les tefillin du bras", src: "Dt 6:8", fx: 1, note: "Pas le Chabbat ni le Yom Tov" },
-  A14: { he: "ציצית", fr: "Porter les tsitsit sur un vêtement à quatre coins", src: "Nb 15:38", fx: 1, note: "Le jour" },
-  A15: { he: "מזוזה", fr: "Avoir une mezouza aux portes", src: "Dt 6:9" },
-  A19: { he: "ברכת המזון", fr: "Bénir après un repas de pain", src: "Dt 8:10" },
-  A54: { he: "שמחה ברגלים", fr: "Se réjouir pendant les fêtes de pèlerinage", src: "Dt 16:14" },
-  A154:{ he: "שביתה בשבת", fr: "Se reposer le Chabbat", src: "Ex 23:12" },
-  A155:{ he: "קידוש היום (זכור)", fr: "Sanctifier le Chabbat par la parole", src: "Ex 20:8" },
-  A156:{ he: "השבתת חמץ", fr: "Éliminer le ‘hamets", src: "Ex 12:15" },
-  A157:{ he: "סיפור יציאת מצרים", fr: "Raconter la sortie d’Égypte", src: "Ex 13:8" },
-  A158:{ he: "אכילת מצה", fr: "Manger de la matsa", src: "Ex 12:18" },
-  A159:{ he: "שביתה ביום ראשון של פסח", fr: "Se reposer le 1er jour de Pessa‘h", src: "Ex 12:16" },
-  A160:{ he: "שביתה בשביעי של פסח", fr: "Se reposer le 7e jour de Pessa‘h", src: "Ex 12:16" },
-  A161:{ he: "ספירת העומר", fr: "Compter le Omer", src: "Lv 23:15", fx: 1 },
-  A162:{ he: "שביתה בשבועות", fr: "Se reposer à Chavouot", src: "Lv 23:21" },
-  A163:{ he: "שביתה בראש השנה", fr: "Se reposer à Roch Hachana", src: "Lv 23:24" },
-  A164:{ he: "עינוי ביום הכיפורים", fr: "Jeûner à Yom Kippour", src: "Lv 16:29" },
-  A165:{ he: "שביתה ביום הכיפורים", fr: "Se reposer à Yom Kippour", src: "Lv 23:32" },
-  A166:{ he: "שביתה בראשון של סוכות", fr: "Se reposer le 1er jour de Souccot", src: "Lv 23:35" },
-  A167:{ he: "שביתה בשמיני עצרת", fr: "Se reposer à Chemini Atseret", src: "Lv 23:36" },
-  A168:{ he: "ישיבה בסוכה", fr: "Résider dans la souccah", src: "Lv 23:42", fx: 1 },
-  A169:{ he: "נטילת לולב", fr: "Prendre le loulav et les trois autres espèces", src: "Lv 23:40", fx: 1 },
-  A170:{ he: "שמיעת שופר", fr: "Entendre le chofar", src: "Nb 29:1", fx: 1 },
-  A189:{ he: "זכירת מעשה עמלק", fr: "Se souvenir de ce qu’a fait Amalek", src: "Dt 25:17" },
-  A195:{ he: "צדקה", fr: "Donner la tsédaka", src: "Dt 15:8" },
-  A206:{ he: "ואהבת לרעך כמוך", fr: "Aimer son prochain comme soi-même", src: "Lv 19:18" },
-  A209:{ he: "והדרת פני זקן", fr: "Honorer les sages et les anciens", src: "Lv 19:32" },
-  A210:{ he: "כיבוד אב ואם", fr: "Honorer son père et sa mère", src: "Ex 20:12" },
-  A211:{ he: "מורא אב ואם", fr: "Révérer son père et sa mère", src: "Lv 19:3" },
+// Les 613 mitsvot dans l’ordre du Rambam (liste de l’introduction du Michné Torah, texte hébreu : Wikisource via Sefaria).
+// Catégorie : P permanente · C selon les circonstances · D liée à une date · I Terre d’Israël · S année de chemita
+//             X non applicable aujourd’hui (T Temple, J Sanhédrin, R royauté et guerre, Y jubilé, A autre)
+// Population : m femmes dispensées · f femmes seulement · k cohanim · n naziréen · g chemita valable partout
+const M613 = [
+["A1","P","","לידע שיש שם אלוה","Savoir que Dieu existe","Ex 20:2"],
+["A2","P","","ליחדו","Proclamer l’unité de Dieu","Dt 6:4"],
+["A3","P","","לאהבו","Aimer Dieu","Dt 6:5"],
+["A4","P","","ליראה ממנו","Craindre Dieu","Dt 6:13"],
+["A5","P","","להתפלל לו","Prier Dieu chaque jour","Ex 23:25"],
+["A6","P","","לדבקה בו","S’attacher à Dieu en fréquentant les sages","Dt 10:20"],
+["A7","C","","להשבע בשמו","Jurer en Son Nom lorsqu’un serment est nécessaire","Dt 6:13"],
+["A8","P","","להדמות בדרכיו הטובים והישרים","Imiter Ses voies de bonté et de justice","Dt 28:9"],
+["A9","P","","לקדש שמו","Sanctifier Son Nom","Lv 22:32"],
+["A10","P","m","לקרות קרית שמע פעמים בכל יום","Réciter le Chema matin et soir","Dt 6:7"],
+["A11","P","m","ללמד תורה וללמדה","Étudier la Torah et l’enseigner","Dt 6:7"],
+["A12","P","m","לקשר תפלין בראש","Mettre les tefillin de la tête","Dt 6:8"],
+["A13","P","m","לקשר תפלין ביד","Mettre les tefillin du bras","Dt 6:8"],
+["A14","P","m","לעשות ציצית","Porter les tsitsit sur un vêtement à quatre coins","Nb 15:38"],
+["A15","P","","לקבע מזוזה","Fixer une mezouza aux portes de sa maison","Dt 6:9"],
+["A16","X:T","","להקהיל את העם לשמע תורה במוצאי שביעית","Rassembler le peuple pour la lecture de la Torah après l’année de chemita (Hakhel)","Dt 31:12"],
+["A17","C","m","לכתב כל איש ספר תורה לעצמו","Écrire un Séfer Torah pour soi","Dt 31:19"],
+["A18","X:R","","לכתב המלך ספר תורה לעצמו, יתר על האחד שלכל אדם, עד שיהיה לו שתי תורות","Pour le roi, écrire un second Séfer Torah","Dt 17:18"],
+["A19","C","","לברך אחר המזון","Bénir Dieu après avoir mangé du pain (Birkat hamazon)","Dt 8:10"],
+["A20","X:T","","לבנות בית הבחירה","Construire le Temple","Ex 25:8"],
+["A21","C","","ליראה מבית זה","Révérer le lieu du Temple","Lv 19:30"],
+["A22","X:T","","לשמר בית זה תמיד","Garder le Temple en permanence","Nb 18:2"],
+["A23","X:T","","להיות הלוי עובד במקדש","Pour les Lévites, servir au Temple","Nb 18:23"],
+["A24","X:T","","לקדש הכוהן ידיו ורגליו בשעת העבודה","Pour le cohen, se laver mains et pieds avant le service","Ex 30:19"],
+["A25","X:T","","לערך נרות במקדש","Préparer les lumières de la Menora","Ex 27:21"],
+["A26","C","k","לברך הכוהנים את ישראל","Pour les cohanim, bénir le peuple (Birkat cohanim)","Nb 6:23"],
+["A27","X:T","","להסדיר לחם ולבונה לפני ה' בכל שבת","Disposer les pains de proposition et l’encens chaque Chabbat","Ex 25:30"],
+["A28","X:T","","להקטיר קטרת פעמים ביום","Brûler l’encens deux fois par jour","Ex 30:7"],
+["A29","X:T","","לערך אש במזבח העולה תמיד","Entretenir un feu permanent sur l’autel","Lv 6:6"],
+["A30","X:T","","להרים הדשן מעל המזבח בכל יום","Retirer les cendres de l’autel","Lv 6:3"],
+["A31","X:T","","לשלח טמאים ממחנה שכינה שהוא המקדש","Écarter les personnes impures du camp de la Présence divine","Nb 5:2"],
+["A32","P","","לחלוק כבוד לזרעו של אהרן, ולהקדימו לכל דבר שבקדושה","Honorer les cohanim et leur donner la préséance","Lv 21:8"],
+["A33","X:T","","להיות הכהנים לובשים לעבודה בגדי כהונה","Revêtir les cohanim de leurs habits de service","Ex 28:2"],
+["A34","X:T","","לשאת הארון על הכתף כשנושאין אותו","Porter l’Arche sur les épaules","Nb 7:9"],
+["A35","X:T","","למשוח כהנים גדולים ומלכים בשמן המשחה","Oindre le grand prêtre et les rois avec l’huile d’onction","Ex 30:31"],
+["A36","X:T","","להיות הכהנים עובדין במקדש משמרות משמרות, ובמועדים עובדין כאחד","Organiser le service des cohanim par gardes (michmarot)","Dt 18:6"],
+["A37","C","k","להיות הכהנים מיטמאין לקרוביהם, ומתאבלין עליהן כשאר ישראל שהן מצווין להתאבל","Pour le cohen, se rendre impur et prendre le deuil pour ses proches parents","Lv 21:3"],
+["A38","X:T","","להיות כהן גדול נושא בתולה","Pour le grand prêtre, épouser une vierge","Lv 21:13"],
+["A39","X:T","","להקריב תמידין בכל יום","Offrir le sacrifice perpétuel (tamid) chaque jour","Nb 28:3"],
+["A40","X:T","","להקריב כהן גדול מנחה בכל יום","Pour le grand prêtre, offrir une oblation chaque jour","Lv 6:13"],
+["A41","X:T","","להוסיף קרבן אחר בכל שבת","Offrir le sacrifice additionnel (moussaf) de Chabbat","Nb 28:9"],
+["A42","X:T","","להוסיף קרבן בכל ראש חודש וחודש","Offrir le moussaf de Roch ‘Hodech","Nb 28:11"],
+["A43","X:T","","להוסיף קרבן בחג הפסח","Offrir le moussaf de Pessa‘h","Lv 23:36"],
+["A44","X:T","","להקריב מנחת העומר ממחרת יום ראשון של פסח עם כבש אחד","Offrir l’oblation du Omer le 16 Nissan","Lv 23:10"],
+["A45","X:T","","להוסיף קרבן ביום עצרת","Offrir le moussaf de Chavouot","Nb 28:27"],
+["A46","X:T","","להביא שתי הלחם עם הקרבנות הקרבים בגלל הלחם ביום עצרת","Offrir les deux pains de Chavouot","Lv 23:17"],
+["A47","X:T","","להוסיף קרבן בראש השנה","Offrir le moussaf de Roch Hachana","Nb 29:1"],
+["A48","X:T","","להוסיף קרבן ביום הצום","Offrir le moussaf de Yom Kippour","Nb 29:7"],
+["A49","X:T","","לעשות עבודת היום ביום הצום","Accomplir le service de Yom Kippour","Lv 16:3"],
+["A50","X:T","","להוסיף קרבן בחג הסוכות","Offrir le moussaf de Souccot","Nb 29:13"],
+["A51","X:T","","להוסיף קרבן ביום שמיני עצרת, כי רגל בפני עצמו הוא","Offrir le moussaf de Chemini Atseret","Nb 29:35"],
+["A52","X:T","","לחוג ברגלים","Offrir le sacrifice de fête (‘haguiga) aux trois fêtes de pèlerinage","Ex 23:14"],
+["A53","X:T","","להיראות ברגלים","Se présenter au Temple aux fêtes de pèlerinage","Dt 16:16"],
+["A54","D","","לשמוח ברגלים","Se réjouir pendant les fêtes de pèlerinage","Dt 16:14"],
+["A55","X:T","","לשחוט כבש הפסח","Égorger l’agneau pascal","Ex 12:6"],
+["A56","X:T","","לאכול בשר הפסח צלי בלילי חמישה עשר מניסן","Manger l’agneau pascal rôti la nuit du 15 Nissan","Ex 12:8"],
+["A57","X:T","","לעשות פסח שני","Offrir le second sacrifice pascal (Pessa‘h chéni)","Nb 9:11"],
+["A58","X:T","","לאכול את בשר פסח שני על מצה ומרור","Manger le second agneau pascal avec matsa et herbes amères","Nb 9:11"],
+["A59","C","","לתקוע בחצוצרות על הקרבנות ובשעת הצרות","Crier vers Dieu en temps de détresse (et sonner des trompettes au Temple)","Nb 10:10"],
+["A60","X:T","","להיות כל קרבנות בהמה מיום שמיני והלאה","N’offrir un animal qu’à partir de son huitième jour","Lv 22:27"],
+["A61","X:T","","להיות כל קרבן בהמה תמים","N’offrir que des animaux sans défaut","Lv 22:21"],
+["A62","X:T","","למלוח כל קרבן","Saler tous les sacrifices","Lv 2:13"],
+["A63","X:T","","מעשה העולה","Les lois de l’holocauste (ola)","Lv 1:3"],
+["A64","X:T","","מעשה חטאת","Les lois du sacrifice expiatoire (‘hatat)","Lv 6:18"],
+["A65","X:T","","מעשה האשם","Les lois du sacrifice de culpabilité (acham)","Lv 7:1"],
+["A66","X:T","","מעשה זבח השלמים","Les lois du sacrifice de paix (chelamim)","Lv 7:11"],
+["A67","X:T","","מעשה המנחה","Les lois de l’oblation (min‘ha)","Lv 2:1"],
+["A68","X:T","","להקריב בית דין קרבן אם טעו בהוראה","Pour le Sanhédrin, offrir un sacrifice après une erreur de jugement","Lv 4:13"],
+["A69","X:T","","להקריב היחיד קרבן חטאת אם שגג במצות לא תעשה שחייבים עליה כרת","Offrir un ‘hatat pour une faute involontaire passible de karet","Lv 5:1"],
+["A70","X:T","","להקריב היחיד קרבן אם נסתפק לו אם חטא חטא שחייבים עליו חטאת או לא חטא","Offrir un sacrifice en cas de doute sur une faute (acham talouy)","Lv 5:17"],
+["A71","X:T","","להקריב השוגג במעילה, או החוטא בגזילה, או בשפחה חרופה, או שכפר בפיקדון ונשבע","Offrir un acham pour un détournement, un vol ou une faute avec une servante fiancée","Lv 5:25"],
+["A72","X:T","","להקריב קרבן עולה ויורד","Offrir le sacrifice à valeur variable (korban olé véyoréd)","Lv 5:11"],
+["A73","C","","להתוודות לפני ה' מכל חטא שיעשה האדם, בשעת הקרבן ושלא בשעת הקרבן","Confesser ses fautes devant Dieu lors du repentir (vidouï)","Nb 5:7"],
+["A74","X:T","","להקריב הזב קרבן אחר שיטהר","Pour le zav purifié, offrir un sacrifice","Lv 15:13"],
+["A75","X:T","","להקריב הזבה קרבן אחר שתטהר","Pour la zava purifiée, offrir un sacrifice","Lv 15:28"],
+["A76","X:T","","להקריב היולדת קרבן אחר שתטהר","Pour l’accouchée purifiée, offrir un sacrifice","Lv 12:6"],
+["A77","X:T","","להקריב המצורע קרבן אחר שיטהר","Pour le lépreux purifié, offrir un sacrifice","Lv 14:10"],
+["A78","X:T","","לעשר הבהמה","Prélever la dîme du bétail","Lv 27:32"],
+["A79","C","","לקדש בכור הבהמה הטהורה ולהקריבו","Consacrer le premier-né d’un animal pur","Dt 15:19"],
+["A80","C","m","לפדות בכור אדם","Racheter son fils premier-né (pidyon haben)","Nb 18:15"],
+["A81","C","","לפדות פטר חמור","Racheter le premier-né de l’âne","Ex 34:20"],
+["A82","C","","לערוף פטר חמור","Briser la nuque du premier-né de l’âne non racheté","Ex 13:13"],
+["A83","X:T","","להביא כל הקרבנות שיש על האדם בחובה או בנדבה ברגל ראשון שפגע בו","Apporter ses sacrifices obligatoires ou volontaires à la première fête","Dt 12:6"],
+["A84","X:T","","להקריב כל הקרבנות בבית הבחירה","N’offrir les sacrifices qu’au Temple","Dt 12:14"],
+["A85","X:T","","להיטפל בהבאת הקרבנות מחוצה לארץ לבית הבחירה","Apporter au Temple les offrandes consacrées hors de la Terre d’Israël","Dt 12:26"],
+["A86","X:T","","לפדות קודשים בעלי מומים ויהיו מותרים באכילה","Racheter les animaux consacrés devenus défectueux","Dt 12:15"],
+["A87","X:T","","להיות התמורה קודש","L’animal substitué à une offrande devient saint (temoura)","Lv 27:10"],
+["A88","X:T","","לאכול שיירי מנחות","Pour les cohanim, manger les restes des oblations","Lv 6:9"],
+["A89","X:T","","לאכול בשר חטאת ואשם","Pour les cohanim, manger la chair du ‘hatat et de l’acham","Ex 29:33"],
+["A90","X:T","","לשרוף בשר קודש שנטמא","Brûler la viande consacrée devenue impure","Lv 7:19"],
+["A91","X:T","","לשרוף הנותר","Brûler les restes des sacrifices (notar)","Lv 7:17"],
+["A92","C","n","לגדל הנזיר שיערו","Pour le naziréen, laisser pousser ses cheveux","Nb 6:5"],
+["A93","X:T","","לגלח הנזיר שערו על קרבנותיו במלאות ימי נזרו, או בתוך ימי נזרו אם נטמא","Pour le naziréen, se raser à la fin de son naziréat avec ses sacrifices","Nb 6:9"],
+["A94","C","","לקיים אדם כל מה שהוציא בשפתיו, מקרבן או צדקה וכיוצא בהם","Accomplir ce que l’on a promis par un vœu","Dt 23:24"],
+["A95","C","","לדון בהפרת נדרים בכל הדינים האמורין בפרשה","Appliquer les lois d’annulation des vœux","Nb 30:3"],
+["A96","X:T","","להיות כל נוגע בנבילה טמא","Les lois d’impureté de la charogne","Lv 11:39"],
+["A97","X:T","","להיות שמונה שרצים מטמאין","Les lois d’impureté des huit reptiles","Lv 11:29"],
+["A98","X:T","","להיות האוכלין מיטמאין","Les lois d’impureté des aliments","Lv 11:34"],
+["A99","C","","להיות הנידה טמאה ומטמאה לאחרים","Les lois de la femme nidda","Lv 15:19"],
+["A100","C","","להיות היולדת טמאה כנידה","Les lois d’impureté de l’accouchée","Lv 12:2"],
+["A101","X:T","","להיות המצורע טמא ומטמא","Les lois d’impureté du lépreux","Lv 13:3"],
+["A102","X:T","","להיות בגד מנוגע טמא ומטמא","Les lois du vêtement atteint de lèpre","Lv 13:47"],
+["A103","X:T","","להיות בית מנוגע מטמא","Les lois de la maison atteinte de lèpre","Lv 14:35"],
+["A104","X:T","","להיות הזב מטמא","Les lois d’impureté du zav","Lv 15:2"],
+["A105","X:T","","להיות שכבת זרע מטמאה","Les lois d’impureté de la semence","Lv 15:16"],
+["A106","X:T","","להיות זבה מטמאה","Les lois d’impureté de la zava","Lv 15:25"],
+["A107","X:T","","להיות המת מטמא","Les lois d’impureté du mort","Nb 19:14"],
+["A108","X:T","","להיות מי נדה מטמאין לאדם טהור, ומטהרין מטומאת מת בלבד","Les lois de l’eau lustrale (vache rousse)","Nb 19:21"],
+["A109","C","","להיות הטהרה מכל הטמאות בטבילה במי מקוה","Se purifier par immersion dans un mikvé","Lv 15:16"],
+["A110","X:T","","להיות הטהרה מן הצרעת בין צרעת אדם בין צרעת בית בעץ ארז ואיזוב ושני תולעת ושתי ציפורים ומים חיים","Purifier le lépreux avec bois de cèdre, hysope et écarlate","Lv 14:2"],
+["A111","X:T","","להיות המצורע מגלח כל שערו","Pour le lépreux, raser tous ses poils","Lv 14:9"],
+["A112","X:T","","להיות המצורע ידוע לכל בדברים האמורים בו ״בגדיו יהיו פרמים וראשו יהיה פרע ועל שפם יעטה וטמא טמא יקרא״","Pour le lépreux, se signaler et vivre à l’écart","Lv 13:45"],
+["A113","X:T","","לעשות פרה אדומה להיות אפרה מוכן","Préparer la vache rousse","Nb 19:9"],
+["A114","X:T","","להיות מעריך אדם נותן דמים הקצובין בפרשה","Donner l’estimation (érekh) fixée par la Torah pour une personne","Lv 27:2"],
+["A115","X:T","","להיות מעריך בהמה טמאה נותן דמיה","Donner la valeur d’un animal impur consacré","Lv 27:11"],
+["A116","X:T","","להיות מעריך ביתו נותן כערך הכהן","Donner la valeur d’une maison consacrée","Lv 27:14"],
+["A117","X:T","","להיות מקדיש שדהו נותן בערך הקצוב בפרשה","Donner la valeur fixée d’un champ consacré","Lv 27:16"],
+["A118","X:T","","לשלם השוגג במעילה מה שמעל לה' ולהוסיף חומש","Réparer l’usage involontaire d’un bien consacré (méïla)","Lv 5:16"],
+["A119","I","","להיות נטע רבעי קודש","Traiter comme saints les fruits de la quatrième année (reva‘i)","Lv 19:24"],
+["A120","I","","להניח פיאה","Laisser le coin du champ aux pauvres (péa)","Lv 19:9"],
+["A121","I","","להניח לקט","Laisser les épis tombés (léket)","Lv 19:9"],
+["A122","I","","להניח עומר השכחה","Laisser la gerbe oubliée (chikh‘ha)","Dt 24:19"],
+["A123","I","","להניח עוללות בכרם","Laisser les grappes incomplètes (‘olelot)","Lv 19:10"],
+["A124","I","","להניח פרט הכרם לפי שבכל אלו נאמר ״לעני ולגר תעזב אתם״","Laisser les grains de raisin tombés (péret)","Lv 19:10"],
+["A125","X:T","","להביא ביכורים לבית הבחירה","Apporter les prémices au Temple (bikkourim)","Ex 34:26"],
+["A126","I","","להפריש תרומה גדולה לכהן","Prélever la grande térouma pour le cohen","Dt 18:4"],
+["A127","I","","להפריש מעשר דגן ללוים","Prélever la première dîme pour le Lévite","Lv 27:30"],
+["A128","I","","להפריש מעשר שני להיאכל לבעליו בירושלים","Prélever la deuxième dîme (ma‘asser chéni)","Dt 14:22"],
+["A129","I","","להיות הלוים מפרישין מעשר מן המעשר שלקחו מישראל ונותנין אותו לכהנים","Pour le Lévite, prélever la dîme de la dîme pour le cohen","Nb 18:26"],
+["A130","I","","להפריש מעשר עני תחת מעשר שני בשלישית ובשישית בשבוע","Prélever la dîme du pauvre les 3e et 6e années","Dt 14:28"],
+["A131","I","","להתוודות וידוי מעשר","Faire la déclaration des dîmes (vidouï ma‘asser)","Dt 26:13"],
+["A132","X:T","","לקרות על הביכורים","Réciter la déclaration des prémices","Dt 26:5"],
+["A133","C","","להפריש חלה לכוהן","Prélever la ‘hala sur la pâte","Nb 15:20"],
+["A134","S","","להשמיט קרקע","Laisser la terre en repos l’année de chemita","Ex 23:11"],
+["A135","S","","לשבות מעבודת הארץ","Cesser les travaux agricoles l’année de chemita","Ex 34:21"],
+["A136","X:Y","","לקדש שנת יובל בשביתה כשמיטה","Sanctifier l’année du jubilé en cessant les travaux","Lv 25:10"],
+["A137","X:Y","","לתקוע בשופר בשנת היובל","Sonner du chofar au jubilé","Lv 25:9"],
+["A138","X:Y","","ליתן גאולה לארץ בשנת היובל","Rendre les terres au jubilé","Lv 25:24"],
+["A139","X:Y","","להיות גאולה בבתי ערי חומה עד שנה","Permettre le rachat d’une maison de ville fortifiée pendant un an","Lv 25:29"],
+["A140","X:J","","למנות שני יובל שנים ושמיטים","Compter les années de chemita et de jubilé","Lv 25:8"],
+["A141","S","g","להשמיט כספים בשביעית","Annuler les dettes à la fin de l’année de chemita","Dt 15:2"],
+["A142","S","g","לנגוש לנוכרי","Pouvoir réclamer une dette à un non-Juif pendant la chemita","Dt 15:3"],
+["A143","C","","ליתן מן הבהמה לכוהן הזרוע והלחיים והקיבה","Donner au cohen l’épaule, les joues et la caillette","Dt 18:3"],
+["A144","C","","ליתן ראשית הגז לכוהן","Donner au cohen les prémices de la tonte","Dt 18:4"],
+["A145","C","","לדון בדיני חרמים, מהם לה' ומהם לכוהן","Juger des biens voués par ‘hérem","Lv 27:28"],
+["A146","C","","לשחוט בהמה חיה ועוף ואחר כך יאכל בשרם","Abattre rituellement l’animal avant d’en manger (che‘hita)","Dt 12:21"],
+["A147","C","","לכסות דם חיה ועוף","Couvrir le sang de l’oiseau ou du gibier abattu","Lv 17:13"],
+["A148","C","","לשלח הקן","Renvoyer la mère avant de prendre les petits du nid","Dt 22:7"],
+["A149","C","","לבדוק בסימני בהמה","Vérifier les signes de pureté des animaux","Lv 11:2"],
+["A150","C","","לבדוק בסימני העוף עד שיבדיל בין טמא לטהור","Vérifier les signes de pureté des oiseaux","Dt 14:11"],
+["A151","C","","לבדוק בסימני חגבים לידע טהור מן הטמא","Vérifier les signes de pureté des sauterelles","Lv 11:21"],
+["A152","C","","לבדוק בסימני דגים","Vérifier les signes de pureté des poissons","Lv 11:9"],
+["A153","X:J","","לקדש חודשים ולחשב שנים וחודשים בבית דין בלבד","Sanctifier les mois et calculer le calendrier (Sanhédrin)","Ex 12:2"],
+["A154","D","","לשבות בשבת","Se reposer le Chabbat","Ex 23:12"],
+["A155","D","","לקדש שבת","Sanctifier le Chabbat par la parole (Kiddouch et Havdala)","Ex 20:7"],
+["A156","D","","לבער חמץ","Éliminer le ‘hamets avant Pessa‘h","Ex 12:15"],
+["A157","D","","לספר ביציאת מצריים בלילה הראשון של חג המצות","Raconter la sortie d’Égypte la nuit du Séder","Ex 13:8"],
+["A158","D","","לאכול מצה בליל זה","Manger de la matsa la nuit du Séder","Ex 12:18"],
+["A159","D","","לשבות בראשון של פסח","Se reposer le premier jour de Pessa‘h","Ex 12:16"],
+["A160","D","","לשבות בשביעי בו","Se reposer le septième jour de Pessa‘h","Ex 12:16"],
+["A161","D","m","לספור מקצירת העומר תשעה וארבעים יום","Compter le Omer pendant 49 jours","Lv 23:15"],
+["A162","D","","לשבות ביום חמישים","Se reposer à Chavouot","Lv 23:21"],
+["A163","D","","לשבות בראשון של חודש השביעי","Se reposer à Roch Hachana","Lv 23:24"],
+["A164","D","","להתענות בעשירי בו","Jeûner à Yom Kippour","Lv 16:29"],
+["A165","D","","לשבות ביום הצום","Se reposer à Yom Kippour","Lv 16:31"],
+["A166","D","","לשבות בראשון של חג הסוכות","Se reposer le premier jour de Souccot","Lv 23:35"],
+["A167","D","","לשבות בשמיני של חג","Se reposer à Chemini Atseret","Lv 23:36"],
+["A168","D","m","לישב בסוכה שבעת ימים","Résider dans la souccah sept jours","Lv 23:42"],
+["A169","D","m","ליטול לולב","Prendre le loulav et les trois autres espèces","Lv 23:40"],
+["A170","D","m","לשמוע קול שופר בראש השנה","Entendre le chofar à Roch Hachana","Nb 29:1"],
+["A171","X:T","","ליתן מחצית השקל בכל שנה ושנה","Donner le demi-sicle chaque année","Ex 30:13"],
+["A172","X:A","","לשמוע מכל נביא שיהיה בכל דור ודור אם לא יוסיף ולא יגרע","Écouter le prophète de chaque génération","Dt 18:15"],
+["A173","X:R","","למנות מלך","Nommer un roi","Dt 17:15"],
+["A174","P","","לשמוע מכל בית דין הגדול שיעמדו להם לישראל","Obéir aux décisions des Sages (Grand Tribunal)","Dt 17:11"],
+["A175","C","","לנטות אחרי רבים אם תהיה מחלוקת בין הסנהדרין בדינין","Suivre la majorité en cas de divergence entre les sages","Ex 23:2"],
+["A176","C","","למנות שופטים ושוטרים בכל קהל וקהל מישראל","Nommer des juges et des officiers dans chaque communauté","Dt 16:18"],
+["A177","C","","להשוות בין בעלי דינין בשעה שעומדין בדין","Pour le juge, traiter les parties à égalité","Lv 19:15"],
+["A178","C","","להעיד בבית דין למי שיש לו עדות","Témoigner au tribunal quand on sait quelque chose","Lv 5:1"],
+["A179","X:J","","לחקור העדים הרבה","Interroger minutieusement les témoins","Dt 13:15"],
+["A180","X:J","","לעשות לעדים זוממין כמו שזממו לעשות","Infliger aux faux témoins la peine qu’ils voulaient faire subir","Dt 19:19"],
+["A181","X:J","","לערוף את העגלה כמצותה","Briser la nuque de la génisse pour un meurtre non élucidé (‘egla ‘aroufa)","Dt 21:4"],
+["A182","X:R","","להכין שש ערי מקלט","Établir six villes de refuge","Dt 19:3"],
+["A183","X:R","","לתת ללויים ערים לשבת, וגם הן קולטות","Donner aux Lévites des villes où habiter","Nb 35:2"],
+["A184","C","","לעשות מעקה","Construire un parapet sur son toit (ma‘aké)","Dt 22:8"],
+["A185","C","","לאבד עבודה זרה וכל משמשיה","Détruire l’idolâtrie et ses objets","Dt 12:2"],
+["A186","X:J","","להרוג אנשי עיר הנידחת ולשרוף את העיר","Détruire la ville entraînée dans l’idolâtrie","Dt 13:17"],
+["A187","X:R","","לאבד שבעה עממים מארץ ישראל","Détruire les sept nations de Canaan","Dt 20:17"],
+["A188","X:R","","להכרית זרעו של עמלק","Effacer la descendance d’Amalek","Dt 25:19"],
+["A189","P","","לזכור מה שעשה לנו עמלק תדיר","Se souvenir de ce qu’a fait Amalek","Dt 25:17"],
+["A190","X:R","","לעשות במלחמת הרשות כמשפט הכתוב בתורה","Mener une guerre facultative selon les lois de la Torah","Dt 20:10"],
+["A191","X:R","","למשוח כוהן למלחמה","Oindre un cohen pour parler au peuple avant la bataille","Dt 20:2"],
+["A192","X:R","","להתקין יד במחנה","Aménager des latrines hors du camp militaire","Dt 23:13"],
+["A193","X:R","","להתקין יתד","Avoir une pelle pour couvrir ses excréments au camp","Dt 23:14"],
+["A194","C","","להשיב את הגזל","Rendre ce que l’on a volé","Lv 5:23"],
+["A195","C","","ליתן צדקה","Donner la tsédaka","Dt 15:8"],
+["A196","X:Y","","להעניק לעבד עברי","Faire un présent à l’esclave hébreu libéré","Dt 15:14"],
+["A197","C","","להלוות לעני","Prêter au pauvre","Dt 15:8"],
+["A198","C","","להלוות לנוכרי בריבית","Prêter à intérêt au non-Juif","Dt 23:21"],
+["A199","C","","להשיב המשכון לבעליו","Rendre le gage à son propriétaire","Dt 24:13"],
+["A200","C","","ליתן שכר שכיר בזמנו","Payer l’ouvrier à temps","Dt 24:15"],
+["A201","C","","להיות השכיר אוכל בזמן שכירותו","Laisser l’ouvrier manger des fruits qu’il récolte","Dt 23:26"],
+["A202","C","","לעזוב מעל חברו או מעל בהמתו","Aider à décharger l’animal de son prochain","Ex 23:5"],
+["A203","C","","להקים המשא על הבהמה","Aider à recharger l’animal de son prochain","Dt 22:4"],
+["A204","C","","להשיב האבידה","Rendre un objet perdu","Dt 22:1"],
+["A205","C","","להוכיח החוטא","Réprimander celui qui faute","Lv 19:17"],
+["A206","P","","לאהוב כל בני אדם מבני ברית","Aimer son prochain comme soi-même","Lv 19:18"],
+["A207","P","","לאהוב את הגר","Aimer le converti","Dt 10:19"],
+["A208","C","","לצדק מאזניים עם המשקלות","Avoir des poids et mesures justes","Lv 19:36"],
+["A209","P","","לכבד החכמים","Honorer les sages et les anciens","Lv 19:32"],
+["A210","P","","לכבד אב ואם","Honorer son père et sa mère","Dt 5:16"],
+["A211","P","","ליראה מאב ואם","Révérer son père et sa mère","Lv 19:3"],
+["A212","C","m","לפרות ולרבות","Croître et se multiplier","Gn 9:7"],
+["A213","C","","לבעול בקידושין","Se marier par les kiddouchin","Dt 22:13"],
+["A214","C","","לשמח חתן את אשתו שנה","Pour le marié, se réjouir avec sa femme la première année","Dt 24:5"],
+["A215","C","m","למול את הבן","Circoncire son fils","Lv 12:3"],
+["A216","C","","לייבם אשת אח","Épouser la veuve de son frère mort sans enfant (yiboum)","Dt 25:5"],
+["A217","C","","לחלוץ ליבם","Accomplir la ‘halitsa si l’on n’épouse pas la veuve de son frère","Dt 25:9"],
+["A218","X:J","","לישא אונס","Pour le violeur, épouser sa victime","Dt 22:29"],
+["A219","X:J","","לישב מוציא שם רע עם אשתו כל ימיו","Pour le calomniateur de sa femme, rester marié avec elle","Dt 22:19"],
+["A220","X:J","","לדון במפתה בחמישים שקל עם שאר דינין","Juger le séducteur et lui imposer l’amende","Ex 22:15"],
+["A221","X:R","","לעשות ליפת תואר ככתוב","Appliquer les lois de la captive (yefat toar)","Dt 21:11"],
+["A222","C","","לגרש בשטר","Divorcer par un acte de divorce (guet)","Dt 24:1"],
+["A223","X:T","","לעשות לסוטה כתורה","Appliquer les lois de la sota","Nb 5:30"],
+["A224","X:J","","להלקות הרשעים","Infliger la flagellation","Dt 25:2"],
+["A225","X:J","","להגלות רוצח בשגגה","Exiler le meurtrier involontaire","Nb 35:25"],
+["A226","X:J","","להיות בית דין הורגין בסיף","Exécuter par l’épée","Ex 21:20"],
+["A227","X:J","","להיות בית דין הורגין בחנק","Exécuter par strangulation","Lv 20:10"],
+["A228","X:J","","להיות בית דין שורפין באש","Exécuter par le feu","Lv 20:14"],
+["A229","X:J","","להיות בית דין סוקלין באבנים","Exécuter par lapidation","Dt 22:24"],
+["A230","X:J","","לתלות מי שנתחייב תלייה","Pendre le corps du condamné","Dt 21:22"],
+["A231","X:J","","לקבור הנהרג ביומו","Enterrer le condamné le jour même","Dt 21:23"],
+["A232","X:Y","","לדון בעבד עברי כהלכותיו","Appliquer les lois de l’esclave hébreu","Ex 21:2"],
+["A233","X:Y","","לייעד אמה עברייה","Épouser la servante hébreue","Ex 21:9"],
+["A234","X:Y","","לפדות אמה עברייה","Racheter la servante hébreue","Ex 21:8"],
+["A235","X:A","","לעבוד בעבד כנעני לעולם","Faire travailler l’esclave cananéen à perpétuité","Lv 25:46"],
+["A236","C","","להיות החובל משלם ממון","Indemniser celui que l’on a blessé","Ex 21:18"],
+["A237","C","","לדון בנזקי בהמה","Juger les dommages causés par un bœuf","Ex 21:35"],
+["A238","C","","לדון בנזקי הבור","Juger les dommages causés par une fosse","Ex 21:33"],
+["A239","C","","לדון לגנב בתשלומין או במיתה","Juger le voleur","Ex 21:16"],
+["A240","C","","לדון בנזקי הבער","Juger les dommages causés par le pâturage","Ex 22:4"],
+["A241","C","","לדון בנזקי האש","Juger les dommages causés par le feu","Ex 22:5"],
+["A242","C","","לדון בדין שומר חינם","Juger le gardien bénévole","Ex 22:6"],
+["A243","C","","לדון בדין נושא שכר ושוכר","Juger le gardien rémunéré","Ex 22:9"],
+["A244","C","","לדון בדין השואל","Juger l’emprunteur","Ex 22:13"],
+["A245","C","","לדון בדין מקח וממכר","Juger les ventes et les achats","Lv 25:14"],
+["A246","C","","לדון בדין טוען וכופר","Juger les litiges entre plaignant et défendeur","Ex 22:8"],
+["A247","C","","להציל הנרדף ואפילו בנפש הרודף","Sauver la personne poursuivie, même au prix de la vie du poursuivant","Dt 25:12"],
+["A248","C","","לדון בדיני נחלות","Juger les héritages","Nb 27:8"],
+["L1","P","","שלא לעלות במחשבה שיש שם אלוה זולתי ה'","Ne pas penser qu’il existe un autre dieu","Ex 20:2"],
+["L2","P","","שלא לעשות פסל, לא יעשה בידו ולא יעשו לו אחרים","Ne pas fabriquer d’idole","Ex 20:3"],
+["L3","P","","שלא לעשות עבודה זרה ואפילו לאחרים","Ne pas fabriquer d’idole pour autrui","Lv 19:4"],
+["L4","P","","שלא לעשות צורות לנואי, ואף על פי שאין עובדין אותן","Ne pas faire de statues, même décoratives","Ex 20:19"],
+["L5","P","","שלא להשתחוות לעבודה זרה, ואף על פי שאין דרך עבודתה בהשתחוויה","Ne pas se prosterner devant une idole","Ex 20:4"],
+["L6","P","","שלא לעבוד עבודה זרה בדברים שדרכה להיעבד בהם","Ne pas servir une idole selon son culte","Ex 20:4"],
+["L7","P","","שלא להעביר למולך","Ne pas livrer son enfant au Molekh","Lv 18:21"],
+["L8","P","","שלא לעשות מעשה אוב","Ne pas pratiquer la nécromancie (ov)","Lv 19:31"],
+["L9","P","","שלא לעשות מעשה יידעוני","Ne pas pratiquer la divination (yid‘oni)","Lv 19:31"],
+["L10","P","","שלא לפנות אחר עבודה זרה","Ne pas s’intéresser au culte des idoles","Lv 19:4"],
+["L11","P","","שלא להקים מצבה","Ne pas ériger de stèle cultuelle","Dt 16:22"],
+["L12","P","","שלא ליתן אבן משכית","Ne pas poser de pierre sculptée pour s’y prosterner","Lv 26:1"],
+["L13","X:T","","שלא ליטע אילן במקדש","Ne pas planter d’arbre dans l’enceinte du Temple","Dt 16:21"],
+["L14","P","","שלא לישבע בעבודה זרה לעובדיה, ולא משביעין אותן בה","Ne pas jurer au nom d’une idole","Ex 23:13"],
+["L15","P","","שלא להדיח בני ישראל אחר עבודה זרה","Ne pas inciter le peuple à l’idolâtrie","Ex 23:13"],
+["L16","P","","שלא להסית אדם מישראל אחר עבודה זרה","Ne pas inciter un individu à l’idolâtrie","Dt 13:12"],
+["L17","C","","שלא לאהוב המסית","Ne pas aimer l’incitateur (mésit)","Dt 13:9"],
+["L18","C","","שלא לעזוב השנאה למסית","Ne pas cesser de haïr l’incitateur","Dt 13:9"],
+["L19","C","","שלא להציל המסית אלא עומד על דמו","Ne pas sauver l’incitateur","Dt 13:9"],
+["L20","C","","שלא ילמד המוסת זכות על המסית","Ne pas plaider en faveur de l’incitateur","Dt 13:9"],
+["L21","C","","שלא ישתוק המוסת מללמד חובה על המסית, אם ידע לו חובה","Ne pas taire un témoignage contre l’incitateur","Dt 13:9"],
+["L22","P","","שלא ליהנות בציפויי נעבד","Ne pas tirer profit des ornements des idoles","Dt 7:25"],
+["L23","X:J","","שלא לבנות עיר הנידחת לכמות שהייתה","Ne pas reconstruire la ville idolâtre détruite","Dt 13:17"],
+["L24","X:J","","שלא ליהנות בממון עיר הנידחת","Ne pas profiter des biens de la ville idolâtre","Dt 13:18"],
+["L25","P","","שלא ליהנות בעבודה זרה, ובכל משמשיה ובתקרובת שלה וביין שנתנסך לה","Ne pas tirer profit d’une idole ni de ses offrandes","Dt 7:26"],
+["L26","P","","שלא להתנבא בשמה","Ne pas prophétiser au nom d’une idole","Dt 18:20"],
+["L27","P","","שלא להתנבא בשקר","Ne pas faire de fausse prophétie","Dt 18:20"],
+["L28","P","","שלא לשמוע למתנבא בשם עבודה זרה","Ne pas écouter celui qui prophétise au nom d’une idole","Dt 13:4"],
+["L29","X:J","","שלא נימנע מהריגת נביא השקר ולא נירא ממנו","Ne pas craindre de condamner le faux prophète","Dt 18:22"],
+["L30","P","","שלא ללכת בחוקות עובדי עבודה זרה ולא במנהגותם","Ne pas suivre les coutumes des idolâtres","Lv 20:23"],
+["L31","P","","שלא לקסום","Ne pas pratiquer la sorcellerie","Dt 18:10"],
+["L32","P","","שלא לעונן","Ne pas pratiquer la divination par présages","Lv 19:26"],
+["L33","P","","שלא לנחש","Ne pas être devin selon les temps","Lv 19:26"],
+["L34","P","","שלא לכשף","Ne pas pratiquer la magie","Dt 18:10"],
+["L35","P","","שלא לחבור חבר","Ne pas jeter de sorts","Dt 18:11"],
+["L36","P","","שלא לשאול באוב","Ne pas consulter un nécromancien (ov)","Dt 18:11"],
+["L37","P","","שלא לשאול ביידעוני","Ne pas consulter un devin (yid‘oni)","Dt 18:11"],
+["L38","P","","שלא לשאול בחלום מן המתים","Ne pas interroger les morts","Dt 18:11"],
+["L39","P","f","שלא תעדה אישה עדי איש","Pour la femme, ne pas porter de vêtement d’homme","Dt 22:5"],
+["L40","P","m","שלא יעדה איש עדי אישה","Pour l’homme, ne pas porter de vêtement de femme","Dt 22:5"],
+["L41","P","","שלא לכתוב בגוף כעובדי עבודה זרה","Ne pas se tatouer","Lv 19:28"],
+["L42","P","","שלא ללבוש שעטנז כמו שלובשין כומרי עבודה זרה","Ne pas porter de cha‘atnez (laine et lin)","Dt 22:11"],
+["L43","P","m","שלא להקיף פיאת ראש ככומרי עבודה זרה","Ne pas raser les coins de la tête (péot)","Lv 19:27"],
+["L44","P","m","שלא להשחית כל הזקן כעובדי עבודה זרה","Ne pas raser les coins de la barbe au rasoir","Lv 19:27"],
+["L45","P","","שלא להתגודד כעובדי עבודה זרה","Ne pas se faire d’incisions (en deuil ou par idolâtrie)","Dt 14:1"],
+["L46","P","","שלא לשכון בארץ מצריים לעולם","Ne pas s’installer en Égypte","Dt 17:16"],
+["L47","P","","שלא לתור אחר מחשבות הלב וראיית העיניים","Ne pas suivre les pensées de son cœur ni les désirs de ses yeux","Nb 15:39"],
+["L48","X:R","","שלא לכרות ברית לשבעה עממין","Ne pas conclure d’alliance avec les sept nations","Dt 7:2"],
+["L49","X:R","","שלא להחיות אדם משבעה עממים","Ne laisser vivre aucun membre des sept nations","Dt 20:16"],
+["L50","P","","שלא לחון על עובדי עבודה זרה","Ne pas être complaisant envers les idolâtres","Dt 7:2"],
+["L51","X:R","","שלא להושיב עובדי עבודה זרה בארצנו","Ne pas laisser les idolâtres s’installer dans notre pays","Ex 23:33"],
+["L52","P","","שלא להתחתן בעובדי עבודה זרה","Ne pas épouser un non-Juif","Dt 7:3"],
+["L53","C","","שלא יישא עמוני ומואבי בת ישראל לעולם","Ne pas laisser épouser un Ammonite ou un Moabite converti","Dt 23:4"],
+["L54","C","","שלא להרחיק זרע עשיו מן הקהל אלא עד שלושה דורות","Ne pas écarter la troisième génération des convertis édomites","Dt 23:8"],
+["L55","C","","שלא להרחיק מצרי מלבוא בקהל אלא עד שלושה דורות","Ne pas écarter la troisième génération des convertis égyptiens","Dt 23:8"],
+["L56","X:R","","שלא לקרוא שלום לעמון ומואב בתחילה בשעת מלחמה כשאר גויים","Ne pas proposer la paix à Ammon et Moab","Dt 23:7"],
+["L57","P","","שלא להשחית אילני מאכל, וכן כל שיש בו השחתה אסור","Ne pas détruire les arbres fruitiers ni rien d’utile (bal tach‘hit)","Dt 20:19"],
+["L58","X:R","","שלא ייראו אנשי המלחמה ולא יפחדו מאויביהם בשעת מלחמה","Pour le soldat, ne pas craindre l’ennemi","Dt 3:22"],
+["L59","P","","שלא יסור מליבנו מעשה עמלק הרע שעשה לנו","Ne pas oublier ce qu’a fait Amalek","Dt 25:19"],
+["L60","P","","שאנו מוזהרין על ברכת השם","Ne pas blasphémer le Nom de Dieu","Ex 22:27"],
+["L61","P","","שלא לעבור על שבועת ביטוי","Ne pas violer un serment","Lv 19:12"],
+["L62","P","","שלא ישבע לשוא","Ne pas jurer en vain","Ex 20:6"],
+["L63","P","","שלא לחלל את שם הקדוש ברוך הוא","Ne pas profaner le Nom de Dieu","Lv 22:32"],
+["L64","P","","שלא לנסות את דבר ה'","Ne pas mettre Dieu à l’épreuve","Dt 6:16"],
+["L65","P","","שלא לאבד בית המקדש, או בתי כנסייות, או בתי מדרשות","Ne pas détruire un lieu saint ni effacer le Nom divin","Dt 12:4"],
+["L66","X:J","","שלא ילין הצלוב על העץ","Ne pas laisser le corps du condamné pendu la nuit","Dt 21:23"],
+["L67","X:T","","שלא להשבית שמירה סביב למקדש","Ne pas interrompre la garde du Temple","Lv 18:30"],
+["L68","X:T","","שלא יכנס כהן להיכל בכל עת","Pour le cohen, ne pas entrer au Saint des saints hors du moment prescrit","Lv 16:2"],
+["L69","X:T","","שלא יכנס בעל מום מן המזבח ולפנים","Pour le cohen infirme, ne pas entrer au-delà de l’autel","Lv 21:23"],
+["L70","X:T","","שלא יעבוד בעל מום","Pour le cohen infirme, ne pas servir","Lv 21:17"],
+["L71","X:T","","שלא יעבוד בעל מום עובר","Pour le cohen atteint d’un défaut passager, ne pas servir","Lv 21:18"],
+["L72","X:T","","שלא יתעסקו הלויים בעבודת הכהנים ולא הכהנים בעבודת הלויים","Pour les Lévites et les cohanim, ne pas échanger leurs fonctions","Nb 18:3"],
+["L73","C","","שלא יכנס למקדש ולא יורה בתורה שתוי יין","Ne pas trancher une question de halakha en état d’ivresse","Lv 10:11"],
+["L74","X:T","","שלא יעבוד הזר במקדש","Pour celui qui n’est pas cohen, ne pas servir au Temple","Nb 18:4"],
+["L75","X:T","","שלא יעבוד כהן טמא","Pour le cohen impur, ne pas servir","Lv 22:2"],
+["L76","X:T","","שלא יעבוד כהן טבול יום עד שיעריב שמשו","Pour le cohen immergé, ne pas servir avant le coucher du soleil","Lv 21:6"],
+["L77","X:T","","שלא יכנס טמא לעזרה","Pour le cohen impur, ne pas entrer dans la cour du Temple","Nb 5:3"],
+["L78","C","","שלא יכנס טמא למחנה לויה שכנגדו לדורות הר הבית","Pour la personne impure, ne pas entrer sur le mont du Temple","Dt 23:11"],
+["L79","X:T","","שלא לבנות אבני מזבח גזית","Ne pas bâtir l’autel en pierres taillées","Ex 20:21"],
+["L80","X:T","","שלא לפסוע על המזבח","Ne pas monter à l’autel par des marches","Ex 20:22"],
+["L81","X:T","","שלא לכבות אש המזבח","Ne pas éteindre le feu de l’autel","Lv 6:6"],
+["L82","X:T","","שלא להקטיר ולהקריב במזבח הזהב","Ne rien offrir d’autre que l’encens sur l’autel d’or","Ex 30:9"],
+["L83","P","","שלא לעשות במתכונת שמן המשחה","Ne pas reproduire l’huile d’onction","Ex 30:32"],
+["L84","X:T","","שלא לסוך בשמן המשחה זר","Ne pas oindre un non-autorisé avec l’huile d’onction","Ex 30:32"],
+["L85","P","","שלא לעשות במתכונת הקטורת","Ne pas reproduire l’encens du Temple","Ex 30:37"],
+["L86","X:T","","שלא להוציא בדי הארון","Ne pas retirer les barres de l’Arche","Ex 25:15"],
+["L87","X:T","","שלא ייזח החושן מעל האיפוד","Ne pas détacher le pectoral de l’éphod","Ex 28:28"],
+["L88","X:T","","שלא ייקרע המעיל","Ne pas déchirer la robe du grand prêtre","Ex 28:32"],
+["L89","P","","שלא להעלות קודשים בחוץ","Ne pas offrir de sacrifice hors du Temple","Dt 12:13"],
+["L90","P","","שלא לשחוט קודשים בחוץ","Ne pas égorger de sacrifice hors du Temple","Lv 17:4"],
+["L91","X:T","","שלא להקדיש בעלי מומין למזבח","Ne pas consacrer un animal défectueux","Lv 22:20"],
+["L92","X:T","","שלא לשחוט בעלי מומין לשם קרבן","Ne pas égorger en sacrifice un animal défectueux","Lv 22:22"],
+["L93","X:T","","שלא לזרוק דם בעלי מומין לגבי המזבח","Ne pas asperger le sang d’un animal défectueux","Lv 22:24"],
+["L94","X:T","","שלא להקטיר אימורי בעלי מומין","Ne pas brûler les graisses d’un animal défectueux","Lv 22:22"],
+["L95","X:T","","שלא להקריב בעל מום עובר","Ne pas offrir un animal au défaut passager","Dt 17:1"],
+["L96","X:T","","שלא להקריב בעל מום מיד הגויים","Ne pas offrir un animal défectueux apporté par un non-Juif","Lv 22:25"],
+["L97","C","","שלא ייתן מום בקודשים","Ne pas infliger de défaut à un animal consacré","Lv 22:21"],
+["L98","X:T","","שלא להקריב שאור או דבש","Ne pas offrir de levain ni de miel sur l’autel","Lv 2:11"],
+["L99","X:T","","שלא להקריב תפל","Ne pas offrir de sacrifice sans sel","Lv 2:13"],
+["L100","X:T","","שלא להקריב אתנן ומחיר","Ne pas offrir le salaire d’une prostituée ni le prix d’un chien","Dt 23:19"],
+["L101","P","","שלא לשחוט אותו ואת בנו","Ne pas égorger le même jour un animal et son petit","Lv 22:28"],
+["L102","X:T","","שלא ליתן שמן זית במנחת חוטא","Ne pas mettre d’huile sur l’oblation du pécheur","Lv 5:11"],
+["L103","X:T","","שלא ליתן עליה לבונה","Ne pas mettre d’encens sur l’oblation du pécheur","Lv 5:11"],
+["L104","X:T","","שלא ייתן שמן במנחת סוטה","Ne pas mettre d’huile sur l’oblation de la sota","Nb 5:15"],
+["L105","X:T","","שלא ייתן עליו לבונה","Ne pas mettre d’encens sur l’oblation de la sota","Nb 5:15"],
+["L106","X:T","","שלא להמיר את הקודשים","Ne pas substituer un animal à une offrande","Lv 27:10"],
+["L107","X:T","","שלא לשנות את הקודשים מקרבן לקרבן","Ne pas changer la destination d’un animal consacré","Lv 27:26"],
+["L108","C","","שלא לפדות בכור בהמה טהורה","Ne pas racheter le premier-né d’un animal pur","Nb 18:17"],
+["L109","X:T","","שלא למכור מעשר בהמה","Ne pas vendre la dîme du bétail","Lv 27:33"],
+["L110","X:T","","שלא למכור שדה החרם","Ne pas vendre un champ voué par ‘hérem","Lv 27:28"],
+["L111","X:T","","שלא לפדות שדה החרם","Ne pas racheter un champ voué par ‘hérem","Lv 27:28"],
+["L112","X:T","","שלא יבדיל ראש חטאת העוף","Ne pas détacher la tête de l’oiseau offert en ‘hatat","Lv 5:8"],
+["L113","C","","שלא לעבוד בקודשים","Ne pas faire travailler un animal consacré","Dt 15:19"],
+["L114","C","","שלא לגזוז את הקודשים","Ne pas tondre un animal consacré","Dt 15:19"],
+["L115","X:T","","שלא ישחוט הפסח והחמץ קיים","Ne pas égorger l’agneau pascal en possédant du ‘hamets","Ex 34:25"],
+["L116","X:T","","שלא להניח אימורי הפסח עד שיפסלו בלינה","Ne pas laisser les graisses de l’agneau pascal jusqu’au matin","Ex 23:18"],
+["L117","X:T","","שלא להותיר מבשר הפסח","Ne pas laisser de viande de l’agneau pascal jusqu’au matin","Ex 12:10"],
+["L118","X:T","","שלא להותיר מחגיגת ארבעה עשר ליום השלישי","Ne pas laisser la viande de la ‘haguiga jusqu’au troisième jour","Dt 16:4"],
+["L119","X:T","","שלא להותיר מבשר פסח שני עד בוקר","Ne pas laisser la viande du second agneau pascal jusqu’au matin","Nb 9:12"],
+["L120","X:T","","שלא להותיר מבשר התודה עד בוקר","Ne pas laisser la viande du sacrifice de reconnaissance jusqu’au matin","Lv 22:30"],
+["L121","X:T","","שלא לשבור עצם בפסח","Ne briser aucun os de l’agneau pascal","Ex 12:46"],
+["L122","X:T","","שלא לשבור עצם בפסח שני","Ne briser aucun os du second agneau pascal","Nb 9:12"],
+["L123","X:T","","שלא להוציא מבשר הפסח מן החבורה","Ne pas sortir la viande de l’agneau pascal du groupe","Ex 12:46"],
+["L124","X:T","","שלא לעשות שיירי מנחות חמץ","Ne pas laisser lever les restes des oblations","Lv 6:10"],
+["L125","X:T","","שלא לאכול בשר הפסח נא ומבושל","Ne pas manger l’agneau pascal cru ou bouilli","Ex 12:9"],
+["L126","X:T","","שלא להאכיל בשר הפסח לגר תושב","Ne pas donner de l’agneau pascal à un résident étranger","Ex 12:45"],
+["L127","X:T","","שלא יאכל הערל בשר הפסח","Ne pas donner de l’agneau pascal à un incirconcis","Ex 12:48"],
+["L128","X:T","","שלא להאכיל בשר הפסח לישראל שנשתמד","Ne pas donner de l’agneau pascal à un apostat","Ex 12:43"],
+["L129","X:T","","שלא יאכל אדם שנטמא קודשים","Pour la personne impure, ne pas manger de choses saintes","Lv 7:20"],
+["L130","X:T","","שלא לאכול מן הקודשים שנטמאו","Ne pas manger de choses saintes devenues impures","Lv 7:19"],
+["L131","X:T","","שלא לאכול נותר","Ne pas manger de sacrifice au-delà du temps permis (notar)","Lv 19:8"],
+["L132","X:T","","שלא לאכול פיגול","Ne pas manger de sacrifice invalidé par l’intention (pigoul)","Lv 7:18"],
+["L133","I","","שלא יאכל זר תרומות","Pour celui qui n’est pas cohen, ne pas manger de térouma","Lv 22:10"],
+["L134","I","","שלא יאכל אפילו תושב כוהן ושכירו תרומה","Pour le résident ou salarié du cohen, ne pas manger de térouma","Lv 22:10"],
+["L135","I","","שלא יאכל ערל תרומה, והוא הדין לשאר קודשים","Pour l’incirconcis, ne pas manger de térouma","Ex 12:48"],
+["L136","I","k","שלא יאכל כוהן טמא תרומה","Pour le cohen impur, ne pas manger de térouma","Lv 21:17"],
+["L137","I","","שלא תאכל חללה קודש, לא תרומות ולא חזה ושוק","Pour la ‘halala, ne pas manger de choses saintes","Lv 22:12"],
+["L138","X:T","","שלא תיאכל מנחת כוהן","Ne pas manger l’oblation d’un cohen","Lv 6:16"],
+["L139","X:T","","שלא לאכול בשר חטאות הנעשות בפנים","Ne pas manger le ‘hatat dont le sang est porté à l’intérieur","Lv 6:23"],
+["L140","X:T","","שלא לאכול פסולי המוקדשין שהוטל בהם מום בכוונה","Ne pas manger un sacrifice invalidé","Dt 14:3"],
+["L141","X:T","","שלא לאכול מעשר שני של דגן חוץ לירושלים","Ne pas manger le grain de la deuxième dîme hors de Jérusalem","Dt 12:17"],
+["L142","X:T","","שלא לאכול מעשר שני של תירוש חוץ לירושלים","Ne pas boire le vin de la deuxième dîme hors de Jérusalem","Dt 12:17"],
+["L143","X:T","","שלא לאכול מעשר שני של יצהר חוץ לירושלים","Ne pas consommer l’huile de la deuxième dîme hors de Jérusalem","Dt 12:17"],
+["L144","X:T","","שלא לאכול בכור תמים חוץ לירושלים","Ne pas manger le premier-né sans défaut hors de Jérusalem","Dt 12:17"],
+["L145","X:T","","שלא יאכלו הכוהנים חטאת ואשם חוץ לעזרה","Pour les cohanim, ne pas manger ‘hatat et acham hors de la cour","Dt 12:17"],
+["L146","X:T","","שלא לאכול בשר העולה","Ne pas manger la viande de l’holocauste","Dt 12:17"],
+["L147","X:T","","שלא לאכול בשר קודשים קלים קודם זריקת דמים","Ne pas manger un sacrifice léger avant l’aspersion du sang","Dt 12:17"],
+["L148","X:T","","שלא יאכל זר בשר קודשי קודשים","Pour celui qui n’est pas cohen, ne pas manger les sacrifices très saints","Ex 29:33"],
+["L149","X:T","","שלא יאכל כוהן ביכורים קודם הנחה בעזרה","Pour le cohen, ne pas manger les prémices avant de les déposer au Temple","Dt 12:17"],
+["L150","X:T","","שלא לאכול מעשר שני בטומאה ואפילו בירושלים עד שייפדה","Ne pas manger la deuxième dîme devenue impure avant son rachat","Dt 26:14"],
+["L151","X:T","","שלא לאכול מעשר שני באנינות","Ne pas manger la deuxième dîme en période de deuil","Dt 26:14"],
+["L152","X:T","","שלא להוציא דמי מעשר שני בשאר דברים שאין בהם אכילה ושתייה","Ne pas dépenser l’argent de la deuxième dîme hors nourriture et boisson","Dt 26:14"],
+["L153","P","","שלא לאכול הטבל","Ne pas manger de produit non prélevé (tével)","Lv 22:15"],
+["L154","I","","שלא להקדים תרומה לביכורים, ולא מעשר ראשון לתרומה, ולא מעשר שני לראשון, אלא מוציאין על הסדר: .ביכורים תחילה,…","Ne pas inverser l’ordre des prélèvements","Ex 22:28"],
+["L155","X:T","","שלא לאחר הנדרים והנדבות שנדר ושנדב","Ne pas tarder à apporter les offrandes promises","Dt 23:22"],
+["L156","X:T","","שלא לעלות לחג בלא קרבן","Ne pas monter au Temple aux fêtes sans offrande","Ex 23:15"],
+["L157","P","","שלא לעבור על דברים שאסר אדם על נפשו","Ne pas manquer à sa parole ni à un vœu","Nb 30:3"],
+["L158","P","k","שלא ייקח כוהן זונה","Pour le cohen, ne pas épouser une zona","Lv 21:7"],
+["L159","P","k","שלא ייקח כוהן חללה","Pour le cohen, ne pas épouser une ‘halala","Lv 21:7"],
+["L160","P","k","שלא ייקח כוהן גרושה","Pour le cohen, ne pas épouser une divorcée","Lv 21:7"],
+["L161","X:T","","שלא ייקח כוהן גדול אלמנה","Pour le grand prêtre, ne pas épouser une veuve","Lv 21:14"],
+["L162","X:T","","שלא יבעול כוהן גדול אלמנה, ואפילו בלא קידושים, מפני שמחללה","Pour le grand prêtre, ne pas avoir de relation avec une veuve","Lv 21:15"],
+["L163","X:T","","שלא ייכנס כוהן למקדש פרוע ראש","Pour le cohen, ne pas entrer au Temple les cheveux longs","Lv 10:6"],
+["L164","X:T","","שלא ייכנס כוהן למקדש קרוע בגדים","Pour le cohen, ne pas entrer au Temple les vêtements déchirés","Lv 10:6"],
+["L165","X:T","","שלא ייצא כוהן מן העזרה בשעת עבודה","Pour le cohen, ne pas quitter la cour pendant le service","Lv 10:7"],
+["L166","P","k","שלא ייטמא כוהן הדיוט לשאר מתים","Pour le cohen, ne pas se rendre impur au contact d’un mort","Lv 21:1"],
+["L167","X:T","","שלא ייטמא כוהן גדול ואפילו לקרוביו","Pour le grand prêtre, ne se rendre impur pour aucun mort","Lv 21:11"],
+["L168","X:T","","שלא ייכנס כוהן גדול עם מת","Pour le grand prêtre, ne pas entrer sous le toit d’un mort","Lv 21:11"],
+["L169","X:R","","שלא ייקח כל שבט לוי חלק בארץ","Pour la tribu de Lévi, ne pas recevoir de part de la Terre","Dt 18:2"],
+["L170","X:R","","שלא ייקח כל שבט לוי חלק בביזה בשעת כיבוש הארץ","Pour la tribu de Lévi, ne pas prendre part au butin","Dt 18:1"],
+["L171","P","","שלא לעשות קורחה על מת","Ne pas s’arracher les cheveux en deuil","Dt 14:1"],
+["L172","P","","שלא לאכול בהמה טמאה","Ne pas manger d’animal impur","Lv 11:4"],
+["L173","P","","שלא לאכול דג טמא","Ne pas manger de poisson impur","Lv 11:11"],
+["L174","P","","שלא לאכול עוף טמא","Ne pas manger d’oiseau impur","Lv 11:13"],
+["L175","P","","שלא לאכול שרץ העוף","Ne pas manger d’insecte volant","Dt 14:19"],
+["L176","P","","שלא לאכול שרץ הארץ","Ne pas manger d’insecte terrestre","Lv 11:41"],
+["L177","P","","שלא לאכול רמש הארץ","Ne pas manger de reptile","Lv 11:44"],
+["L178","P","","שלא לאכול תולעת הפירות כשתצא לאוויר","Ne pas manger les vers sortis des fruits","Lv 11:42"],
+["L179","P","","שלא לאכול שרץ המים","Ne pas manger de bestiole aquatique","Lv 11:43"],
+["L180","P","","שלא לאכול מתה","Ne pas manger de bête morte sans abattage (névéla)","Dt 14:21"],
+["L181","P","","שלא לאכול טריפה","Ne pas manger de bête atteinte d’une lésion mortelle (tréfa)","Ex 22:30"],
+["L182","P","","שלא לאכול אבר מן החי","Ne pas manger le membre d’un animal vivant","Dt 12:23"],
+["L183","P","","שלא לאכול גיד הנשה","Ne pas manger le nerf sciatique","Gn 32:33"],
+["L184","P","","שלא לאכול דם","Ne pas consommer de sang","Lv 3:17"],
+["L185","P","","שלא לאכול חלב","Ne pas manger les graisses interdites (‘hélev)","Lv 7:23"],
+["L186","P","","שלא לבשל בשר בחלב","Ne pas cuire la viande avec le lait","Ex 23:19"],
+["L187","P","","שלא לאכול בשר בחלב","Ne pas manger de viande cuite avec du lait","Ex 34:26"],
+["L188","X:J","","שלא לאכול בשר שור הנסקל","Ne pas manger le bœuf condamné à la lapidation","Ex 21:28"],
+["L189","P","","שלא לאכול פת תבואה חדשה קודם הפסח","Ne pas manger de pain de la nouvelle récolte avant le Omer (‘hadach)","Lv 23:14"],
+["L190","P","","שלא לאכול קלי מן החדש","Ne pas manger de grain grillé de la nouvelle récolte avant le Omer","Lv 23:14"],
+["L191","P","","שלא לאכול כרמל מתבואה חדשה","Ne pas manger d’épis frais de la nouvelle récolte avant le Omer","Lv 23:14"],
+["L192","P","","שלא לאכול עורלה","Ne pas manger les fruits des trois premières années (‘orla)","Lv 19:23"],
+["L193","I","","שלא לאכול כלאי הכרם","Ne pas manger les produits semés dans une vigne (kil’é hakérem)","Dt 22:9"],
+["L194","P","","שלא לשתות יין נסך","Ne pas boire de vin de libation idolâtre","Dt 32:38"],
+["L195","P","","שלא לאכול ולשתות דרך זולל וסובא","Ne pas manger ni boire avec excès","Dt 21:20"],
+["L196","D","","שלא לאכול ביום הצום","Ne pas manger ni boire à Yom Kippour","Lv 23:29"],
+["L197","D","","שלא לאכול חמץ בפסח","Ne pas manger de ‘hamets à Pessa‘h","Ex 13:3"],
+["L198","D","","שלא לאכול תערובת חמץ","Ne pas manger de mélange contenant du ‘hamets","Ex 12:20"],
+["L199","D","","שלא לאכול חמץ אחר חצות יום ארבעה עשר","Ne pas manger de ‘hamets à partir de midi le 14 Nissan","Dt 16:3"],
+["L200","D","","שלא ייראה חמץ","Que le ‘hamets ne soit pas vu chez soi","Ex 13:7"],
+["L201","D","","שלא יימצא חמץ","Que le ‘hamets ne se trouve pas chez soi","Ex 12:19"],
+["L202","C","n","שלא ישתה הנזיר יין, ולא דבר שנתערב בו יין וטעמו כטעם יין","Pour le naziréen, ne pas boire de vin","Nb 6:3"],
+["L203","C","n","שלא יאכל ענבים לחים","Pour le naziréen, ne pas manger de raisin frais","Nb 6:3"],
+["L204","C","n","שלא יאכל ענבים יבשים","Pour le naziréen, ne pas manger de raisins secs","Nb 6:3"],
+["L205","C","n","שלא יאכל חרצנים","Pour le naziréen, ne pas manger de pépins de raisin","Nb 6:4"],
+["L206","C","n","שלא יאכל זוגין","Pour le naziréen, ne pas manger de peaux de raisin","Nb 6:4"],
+["L207","C","n","שלא ייטמא הנזיר למת","Pour le naziréen, ne pas se rendre impur au contact d’un mort","Nb 6:7"],
+["L208","C","n","שלא ייכנס באוהל המת","Pour le naziréen, ne pas entrer sous le toit d’un mort","Nb 6:6"],
+["L209","C","n","שלא יגלח הנזיר","Pour le naziréen, ne pas se raser","Nb 6:5"],
+["L210","I","","שלא לקצור כל השדה","Ne pas moissonner tout le champ","Lv 23:22"],
+["L211","I","","שלא ללקוט השיבולים הנופלות בשעת קצירה","Ne pas ramasser les épis tombés","Lv 19:9"],
+["L212","I","","שלא לבצור עוללות הכרם","Ne pas cueillir les grappes incomplètes","Lv 19:10"],
+["L213","I","","שלא ללקוט פרט הכרם","Ne pas ramasser les grains de raisin tombés","Lv 19:10"],
+["L214","I","","שלא ליקח עומר השכחה","Ne pas reprendre la gerbe oubliée","Dt 24:20"],
+["L215","I","","שלא לזרוע כלאי זרעים","Ne pas semer ensemble des graines d’espèces différentes","Lv 19:19"],
+["L216","I","","שלא לזרוע תבואה או ירק בכרם","Ne pas semer de céréales ni de légumes dans une vigne","Dt 22:9"],
+["L217","P","","שלא להרביע בהמה מין בשאינו מינו","Ne pas croiser des espèces animales différentes","Lv 19:19"],
+["L218","P","","שלא יעשה מלאכה בשני מיני בהמה כאחד","Ne pas faire travailler ensemble deux espèces d’animaux","Dt 22:10"],
+["L219","P","","שלא לחסום בהמה בשעת מלאכה בדבר שאוכלת ממנו ונהנית","Ne pas museler l’animal qui travaille","Dt 25:4"],
+["L220","S","","שלא לעבוד אדמה בשביעית","Ne pas cultiver la terre l’année de chemita","Lv 25:4"],
+["L221","S","","שלא לעבוד אילן בשביעית","Ne pas tailler les arbres l’année de chemita","Lv 25:4"],
+["L222","S","","שלא לקצור ספיחי שביעית כדרך שקוצרין בשאר השנים","Ne pas moissonner comme d’habitude ce qui pousse seul pendant la chemita","Lv 25:5"],
+["L223","S","","שלא לאסוף פירות האילן בשביעית כדרך שאוספין בכל שנה ושנה","Ne pas vendanger comme d’habitude les fruits de la chemita","Lv 25:5"],
+["L224","X:Y","","שלא לעבוד בשנת יובל בין אדמה בין אילן","Ne pas cultiver la terre l’année du jubilé","Lv 25:11"],
+["L225","X:Y","","שלא לקצור ספיחי יובל כשאר השנים","Ne pas moissonner comme d’habitude ce qui pousse seul au jubilé","Lv 25:11"],
+["L226","X:Y","","שלא לאסוף פירות יובל כאסיפת שאר השנים","Ne pas récolter comme d’habitude les fruits du jubilé","Lv 25:11"],
+["L227","X:Y","","שלא למכור שדה בארץ ישראל לצמיתות","Ne pas vendre un champ de la Terre d’Israël à perpétuité","Lv 25:23"],
+["L228","X:Y","","שלא לשנות מגרשי הלויים ושדותיהם","Ne pas changer l’usage des terrains des Lévites","Lv 25:34"],
+["L229","I","","שלא לעזוב הלויים","Ne pas délaisser les Lévites","Dt 12:19"],
+["L230","S","g","שלא יתבע הלוואה שעברה עליה שביעית","Ne pas réclamer une dette annulée par la chemita","Dt 15:2"],
+["L231","S","g","שלא יימנע מלהלוות לעני מפני השמיטה","Ne pas refuser de prêter au pauvre à l’approche de la chemita","Dt 15:9"],
+["L232","C","","שלא יימנע מלהחיות לעני ומליתן לו מה שהוא צריך","Ne pas refuser d’aider le pauvre","Dt 15:7"],
+["L233","X:Y","","שלא לשלח עבד עברי ריקם כשייצא חופשי","Ne pas renvoyer l’esclave hébreu les mains vides","Dt 15:13"],
+["L234","C","","שלא יתבע העני בחובו כשיידע שהוא עני, ולא יצר לו","Ne pas presser le débiteur que l’on sait pauvre","Ex 22:24"],
+["L235","P","","שלא להלוות בריבית לישראל","Ne pas prêter à intérêt à un Juif","Lv 25:37"],
+["L236","P","","שלא ללוות בריבית","Ne pas emprunter à intérêt à un Juif","Dt 23:20"],
+["L237","P","","שלא להשית יד בין לווה ומלווה בריבית, ולא להיות ערב, ולא עד, ולא לכתוב שטר ביניהם","Ne pas participer à un prêt à intérêt (garant, témoin, scribe)","Ex 22:24"],
+["L238","C","","שלא לאחר פעולת שכיר","Ne pas retarder le salaire de l’ouvrier","Lv 19:13"],
+["L239","C","","שלא ימשכן בעל חוב בזרוע","Ne pas prendre de gage par la force","Dt 24:10"],
+["L240","C","","שלא למנוע העבוט מבעליו העני בעת שהוא צריך לו","Ne pas garder le gage dont le pauvre a besoin","Dt 24:12"],
+["L241","C","","שלא למשכן האלמנה","Ne pas prendre de gage à une veuve","Dt 24:17"],
+["L242","C","","שלא לחבול כלים שעושין בהם אוכל נפש","Ne pas prendre en gage les ustensiles de cuisine","Dt 24:6"],
+["L243","P","","שלא לגנוב נפש מישראל","Ne pas enlever une personne","Ex 20:13"],
+["L244","P","","שלא לגנוב ממון","Ne pas voler en cachette","Lv 19:11"],
+["L245","P","","שלא לגזול","Ne pas voler par la force","Lv 19:13"],
+["L246","P","","שלא להסיג גבול","Ne pas déplacer les bornes","Dt 19:14"],
+["L247","P","","שלא לעשוק","Ne pas retenir le dû d’autrui","Lv 19:13"],
+["L248","P","","שלא לכחש בממון חברו","Ne pas nier une dette","Lv 19:11"],
+["L249","P","","שלא לישבע על כפירת ממון חברו","Ne pas jurer faussement au sujet d’une dette","Lv 19:11"],
+["L250","P","","שלא יונה במקח וממכר","Ne pas tromper dans le commerce","Lv 25:14"],
+["L251","P","","שלא יונה בדברים","Ne pas blesser autrui par la parole","Lv 25:17"],
+["L252","P","","שלא להונות את הגר בדברים","Ne pas blesser un converti par la parole","Ex 22:20"],
+["L253","P","","שלא להונות את הגר במקח וממכר","Ne pas tromper un converti dans le commerce","Ex 22:20"],
+["L254","X:A","","שלא להחזיר עבד שברח לארץ ישראל לאדוניו שבחוצה לארץ","Ne pas livrer l’esclave réfugié en Terre d’Israël à son maître","Dt 23:16"],
+["L255","X:A","","שלא להונות עבד זה","Ne pas maltraiter cet esclave réfugié","Dt 23:17"],
+["L256","P","","שלא לענות יתום ואלמנה","Ne pas opprimer la veuve ni l’orphelin","Ex 22:21"],
+["L257","X:Y","","שלא לעבוד בעבד עברי כעבודת עבד","Ne pas imposer à l’esclave hébreu des tâches avilissantes","Lv 25:39"],
+["L258","X:Y","","שלא למכור אותו ממכרת עבד","Ne pas vendre l’esclave hébreu comme un esclave","Lv 25:42"],
+["L259","X:Y","","שלא לעבוד בעבד עברי בפרך","Ne pas imposer à l’esclave hébreu un travail pénible","Lv 25:43"],
+["L260","X:Y","","שלא להניח הגוי לעבד בעבד עברי הנמכר לו בפרך","Ne pas laisser un non-Juif imposer un travail pénible à l’esclave hébreu","Lv 25:53"],
+["L261","X:Y","","שלא למכור אמה עברייה לאחר","Ne pas revendre la servante hébreue","Ex 21:8"],
+["L262","X:Y","","שלא למנוע מאמה עברייה היעודה שאר כסות ועונה","Ne pas priver la servante épousée de nourriture, vêtements et conjugalité","Ex 21:10"],
+["L263","X:R","","שלא למכור אשת יפת תואר","Ne pas vendre la captive (yefat toar)","Dt 21:14"],
+["L264","X:R","","שלא לכבוש אשת יפת תואר שפחה","Ne pas asservir la captive","Dt 21:14"],
+["L265","P","","שלא לחמוד","Ne pas convoiter le bien d’autrui","Ex 20:13"],
+["L266","P","","שלא להתאוות","Ne pas désirer le bien d’autrui","Dt 5:17"],
+["L267","C","","שלא יאכל השכיר שלא בשעת גמר מלאכה מן המחובר שהוא עושה בו","Pour l’ouvrier, ne pas manger pendant le travail","Dt 23:26"],
+["L268","C","","שלא ייקח השכיר יתר על אכילתו","Pour l’ouvrier, ne pas emporter plus que ce qu’il mange","Dt 23:25"],
+["L269","C","","שלא יתעלם מן האבידה","Ne pas ignorer un objet perdu","Dt 22:3"],
+["L270","C","","שלא להניח הבהמה רובצת תחת משאה בדרך","Ne pas laisser l’animal tombé sous sa charge","Dt 22:4"],
+["L271","P","","שלא לעשות עול במדה","Ne pas falsifier les mesures","Lv 19:35"],
+["L272","P","","שלא להיות אצלנו איפה ואיפה אבן ואבן","Ne pas garder chez soi des poids faux","Dt 25:14"],
+["L273","C","","שלא לעוול המשפט","Pour le juge, ne pas commettre d’injustice","Lv 19:15"],
+["L274","C","","שלא ליקח שוחד","Pour le juge, ne pas accepter de pot-de-vin","Ex 23:8"],
+["L275","C","","שלא לכבד גדול בדין","Pour le juge, ne pas favoriser un notable","Lv 19:15"],
+["L276","C","","שלא יירא הדיין בדין מאדם רע","Pour le juge, ne pas craindre un homme méchant","Dt 1:17"],
+["L277","C","","שלא לרחם על עני בדין","Pour le juge, ne pas favoriser le pauvre","Ex 23:3"],
+["L278","C","","שלא להטות משפט אדם חוטא","Pour le juge, ne pas fausser le jugement du pécheur","Ex 23:6"],
+["L279","C","","שלא לרחם על המזיק בדיני קנסות","Pour le juge, ne pas avoir pitié de l’auteur d’un dommage","Dt 19:21"],
+["L280","C","","שלא להטות משפט גרים ויתומים","Ne pas fausser le droit du converti ni de l’orphelin","Dt 24:17"],
+["L281","C","","שלא לשמוע מאחד מבעלי דינין ואין חברו עימו","Pour le juge, ne pas écouter une partie en l’absence de l’autre","Ex 23:1"],
+["L282","X:J","","שלא לנטות אחרי רבים בדיני נפשות, אם היו המחייבין יתר על המזכין אחד","Ne pas condamner à mort à une voix de majorité","Ex 23:2"],
+["L283","X:J","","שלא ילמד חובה מי שלימד זכות תחילה בדיני נפשות","Pour le juge qui a plaidé l’acquittement, ne pas plaider la condamnation","Ex 23:2"],
+["L284","C","","שלא למנות בדיינין אדם שאינו חכם בדברי תורה, אף על פי שהוא חכם בחכמות אחרות","Ne pas nommer juge un homme ignorant en Torah","Dt 1:17"],
+["L285","P","","שלא להעיד בשקר","Ne pas porter de faux témoignage","Ex 20:12"],
+["L286","C","","שלא יעיד בעל עבירה","Ne pas accepter le témoignage d’un pécheur","Ex 23:1"],
+["L287","C","","שלא יעיד קרוב","Ne pas accepter le témoignage d’un proche parent","Dt 24:16"],
+["L288","C","","שלא לכרות הדין על פי עד אחד","Ne pas juger sur la foi d’un seul témoin","Dt 19:15"],
+["L289","P","","שלא להרוג נקי","Ne pas tuer","Ex 20:12"],
+["L290","X:J","","שלא לחתוך הדין באומד הדעת, עד שיראו שני עדים גופו של דבר","Ne pas condamner sur une présomption","Ex 23:7"],
+["L291","X:J","","שלא יורה העד בדין שהעיד בו בדיני נפשות","Pour le témoin, ne pas juger l’affaire capitale où il a témoigné","Nb 35:30"],
+["L292","X:J","","שלא להרוג מחוייב הריגה קודם שיעמוד בדין","Ne pas exécuter sans jugement","Nb 35:12"],
+["L293","C","","שלא לחוס על הרודף, אלא הורגין אותו קודם שיגיע לנרדף ויהרגנו או יגלה ערוותו","Ne pas épargner le poursuivant","Dt 25:12"],
+["L294","X:J","","שלא לענוש האנוס","Ne pas punir celui qui a agi sous la contrainte","Dt 22:26"],
+["L295","X:J","","שלא ליקח כופר מן הרוצח","Ne pas accepter de rançon pour un meurtrier","Nb 35:31"],
+["L296","X:J","","שלא ליקח כופר בגלות רוצח בשגגה","Ne pas accepter de rançon pour l’exil du meurtrier involontaire","Nb 35:32"],
+["L297","P","","שלא לעמוד על הדם","Ne pas rester indifférent au danger de mort d’autrui","Lv 19:16"],
+["L298","P","","שלא להניח מכשול","Ne pas laisser d’obstacle dangereux chez soi","Dt 22:8"],
+["L299","P","","שלא להכשיל תם בדרך","Ne pas induire en erreur celui qui ne sait pas","Lv 19:14"],
+["L300","X:J","","שלא להוסיף במלקות המחוייב מלקות","Ne pas ajouter de coups à la flagellation","Dt 25:3"],
+["L301","P","","שלא לרגל","Ne pas colporter de médisance","Lv 19:16"],
+["L302","P","","שלא לשנוא בלב","Ne pas haïr son frère dans son cœur","Lv 19:17"],
+["L303","P","","שלא להלבין פני אדם מישראל","Ne pas humilier autrui","Lv 19:17"],
+["L304","P","","שלא לנקום","Ne pas se venger","Lv 19:18"],
+["L305","P","","שלא לנטור","Ne pas garder rancune","Lv 19:18"],
+["L306","C","","שלא ליקח אם על הבנים","Ne pas prendre la mère avec les petits","Dt 22:6"],
+["L307","X:T","","שלא לגלח שיער הנתק","Ne pas raser la teigne de la lèpre","Lv 13:33"],
+["L308","X:T","","שלא לתלוש סימני צרעת","Ne pas effacer les signes de la lèpre","Dt 24:8"],
+["L309","X:J","","שלא לעבוד ולזרוע בנחל איתן","Ne pas cultiver la vallée de la génisse","Dt 21:4"],
+["L310","X:J","","שלא להחיות מכשף","Ne pas laisser vivre le sorcier","Ex 22:17"],
+["L311","X:R","","שלא יתחייב חתן בדבר מצורכי רבים כל שנתו, כגון צבא ושמירת החומה וכיוצא בהן","Ne pas imposer au jeune marié de service public la première année","Dt 24:5"],
+["L312","P","","שלא להמרות על פי בית דין","Ne pas contester l’autorité des Sages","Dt 17:11"],
+["L313","P","","שלא להוסיף על מצוות התורה, בין תורה שבכתב בין בפירושה שקיבלו על פה","Ne rien ajouter aux mitsvot de la Torah","Dt 13:1"],
+["L314","P","","שלא לגרוע מכל מצוות התורה","Ne rien retrancher des mitsvot de la Torah","Dt 13:1"],
+["L315","P","","שלא לקלל הדיין","Ne pas maudire un juge","Ex 22:27"],
+["L316","P","","שלא לקלל הנשיא, והוא המלך או ראש ישיבת ארץ ישראל","Ne pas maudire un dirigeant","Ex 22:27"],
+["L317","P","","שלא לקלל אחד משאר ישראל","Ne maudire aucun Juif","Lv 19:14"],
+["L318","P","","שלא לקלל אב ואם","Ne pas maudire son père ni sa mère","Ex 21:17"],
+["L319","P","","שלא להכות אב ואם","Ne pas frapper son père ni sa mère","Ex 21:15"],
+["L320","D","","שלא לעשות מלאכה בשבת","Ne pas travailler le Chabbat","Ex 20:9"],
+["L321","D","","שלא להלך חוץ לתחום מדינה כהולכי דרכים בשבת","Ne pas sortir des limites (te‘houm) le Chabbat","Ex 16:29"],
+["L322","X:J","","שלא לענוש בשבת","Pour le tribunal, ne pas punir le Chabbat","Ex 35:3"],
+["L323","D","","שלא לעשות מלאכה בראשון של פסח","Ne pas travailler le premier jour de Pessa‘h","Ex 12:16"],
+["L324","D","","שלא לעשות מלאכה בשביעי של פסח","Ne pas travailler le septième jour de Pessa‘h","Ex 12:16"],
+["L325","D","","שלא לעשות מלאכה בחג השבועות","Ne pas travailler à Chavouot","Lv 23:21"],
+["L326","D","","שלא לעשות מלאכה באחד לחודש השביעי","Ne pas travailler à Roch Hachana","Lv 23:25"],
+["L327","D","","שלא לעשות מלאכה ביום הכיפורים","Ne pas travailler à Yom Kippour","Lv 16:29"],
+["L328","D","","שלא לעשות מלאכה בראשון של חג","Ne pas travailler le premier jour de Souccot","Lv 23:35"],
+["L329","D","","שלא לעשות מלאכה ביום שמיני של חג","Ne pas travailler à Chemini Atseret","Lv 23:36"],
+["L330","P","","שלא לגלות ערוות אם","Interdit de relation avec sa mère","Lv 18:7"],
+["L331","P","","שלא לגלות ערוות אשת אב","Interdit de relation avec la femme de son père","Lv 18:8"],
+["L332","P","","שלא לגלות ערוות אחות","Interdit de relation avec sa sœur","Lv 18:9"],
+["L333","P","","שלא לגלות ערוות אחות מן האב ומן האם","Interdit de relation avec la fille de la femme de son père","Lv 18:11"],
+["L334","P","","שלא לגלות ערוות בת הבן","Interdit de relation avec la fille de son fils","Lv 18:10"],
+["L335","P","","שלא לגלות ערוות בת הבת","Interdit de relation avec la fille de sa fille","Lv 18:10"],
+["L336","P","","שלא לגלות ערוות הבת","Interdit de relation avec sa fille","Lv 18:10"],
+["L337","P","","שלא לגלות ערוות אישה ובתה","Interdit de relation avec une femme et sa fille","Lv 18:17"],
+["L338","P","","שלא לגלות ערוות אישה ובת בנה","Interdit de relation avec une femme et la fille de son fils","Lv 18:17"],
+["L339","P","","שלא לגלות ערוות אישה ובת בתה","Interdit de relation avec une femme et la fille de sa fille","Lv 18:17"],
+["L340","P","","שלא לגלות ערוות אחות האב","Interdit de relation avec la sœur de son père","Lv 18:12"],
+["L341","P","","שלא לגלות ערוות אחות האם","Interdit de relation avec la sœur de sa mère","Lv 18:13"],
+["L342","P","","שלא לגלות ערוות אשת אחי האב","Interdit de relation avec la femme du frère de son père","Lv 18:14"],
+["L343","P","","שלא לגלות ערוות אשת הבן","Interdit de relation avec sa belle-fille","Lv 18:15"],
+["L344","P","","שלא לגלות ערוות אשת אח","Interdit de relation avec la femme de son frère","Lv 18:16"],
+["L345","P","","שלא לגלות ערוות אחות אישה","Interdit de relation avec la sœur de sa femme","Lv 18:18"],
+["L346","P","","שלא לגלות ערוות נידה","Interdit de relation pendant la période de nidda","Lv 18:19"],
+["L347","P","","שלא לגלות ערוות אשת איש","Interdit de relation avec une femme mariée","Lv 18:20"],
+["L348","P","m","שלא לשכב עם בהמה","Pour l’homme, interdit de relation avec un animal","Lv 18:20"],
+["L349","P","f","שלא תביא אישה בהמה עליה","Pour la femme, interdit de relation avec un animal","Lv 18:23"],
+["L350","P","","שלא לשכב עם זכר","Interdit de relation homosexuelle masculine","Lv 18:22"],
+["L351","P","","שלא לגלות ערוות האב עצמו","Interdit de relation avec son père","Lv 18:7"],
+["L352","P","","שלא לגלות ערוות אחי האב עצמו","Interdit de relation avec le frère de son père","Lv 18:14"],
+["L353","P","","שלא ליקרב לעריות בדברים המביאין לידי גילוי ערווה, כגון חיבוק ונישוק ורמיזה וקפיצה","Ne pas avoir de rapprochement physique avec une femme interdite","Lv 18:6"],
+["L354","C","","שלא יישא ממזר בת ישראל","Pour le mamzer, ne pas épouser une Juive","Dt 23:3"],
+["L355","P","","שלא תהיה קדשה, והיא הנבעלת בלא כתובה וקידושין","Interdit de relation hors mariage (kedécha)","Dt 23:18"],
+["L356","C","","שלא יחזיר המגרש גרושתו אחר שנישאת לאחר","Ne pas reprendre sa divorcée après qu’elle s’est remariée","Dt 24:4"],
+["L357","C","","שלא תינשא היבמה לאחר חוץ מיבמה","Pour la veuve en attente de yiboum, ne pas épouser un autre homme","Dt 25:5"],
+["L358","X:J","","שלא יגרש האונס אנוסתו","Pour le violeur, ne pas divorcer de sa victime","Dt 22:29"],
+["L359","X:J","","שלא יגרש מוציא שם רע את אשתו","Pour le calomniateur, ne pas divorcer de sa femme","Dt 22:19"],
+["L360","C","","שלא ייקח סריס בת ישראל","Pour l’homme mutilé, ne pas épouser une Juive","Dt 23:2"],
+["L361","P","","שלא לסרס זכר מכל המינין, לא אדם ולא בהמה חיה ועוף","Ne pas castrer un homme ni un animal","Lv 22:24"],
+["L362","C","","שלא למנות על ישראל איש מקהל גרים","Ne pas placer un converti à la tête du peuple","Dt 17:15"],
+["L363","X:R","","שלא ירבה המלך סוסים","Pour le roi, ne pas accumuler les chevaux","Dt 17:16"],
+["L364","X:R","","שלא ירבה המלך נשים","Pour le roi, ne pas accumuler les épouses","Dt 17:17"],
+["L365","X:R","","שלא ירבה לו המלך כסף וזהב","Pour le roi, ne pas accumuler l’argent et l’or","Dt 17:17"]
+];
 
-  L1:  { he: "לא יהיה לך אלהים אחרים", fr: "Ne pas croire en d’autres dieux", src: "Ex 20:3" },
-  L47: { he: "לא תתורו אחרי לבבכם ועיניכם", fr: "Ne pas suivre les désirs de son cœur et de ses yeux", src: "Nb 15:39" },
-  L59: { he: "לא תשכח", fr: "Ne pas oublier ce qu’a fait Amalek", src: "Dt 25:19" },
-  L63: { he: "לא תחללו את שם קדשי", fr: "Ne pas profaner le Nom de Dieu", src: "Lv 22:32" },
-  L172:{ he: "בהמה וחיה טמאה", fr: "Ne pas manger d’animal impur", src: "Lv 11:4" },
-  L173:{ he: "דג טמא", fr: "Ne pas manger de poisson impur", src: "Lv 11:11" },
-  L174:{ he: "עוף טמא", fr: "Ne pas manger d’oiseau impur", src: "Lv 11:13" },
-  L180:{ he: "נבלה", fr: "Ne pas manger de bête morte sans abattage rituel", src: "Dt 14:21" },
-  L181:{ he: "טרפה", fr: "Ne pas manger de bête atteinte d’une lésion mortelle", src: "Ex 22:30" },
-  L182:{ he: "אבר מן החי", fr: "Ne pas manger le membre d’un animal vivant", src: "Dt 12:23" },
-  L183:{ he: "גיד הנשה", fr: "Ne pas manger le nerf sciatique", src: "Gn 32:33" },
-  L184:{ he: "דם", fr: "Ne pas consommer de sang", src: "Lv 7:26" },
-  L185:{ he: "חלב", fr: "Ne pas manger les graisses interdites", src: "Lv 7:23" },
-  L186:{ he: "בישול בשר בחלב", fr: "Ne pas cuire la viande avec le lait", src: "Ex 23:19" },
-  L187:{ he: "אכילת בשר בחלב", fr: "Ne pas manger de viande cuite avec du lait", src: "Ex 34:26" },
-  L196:{ he: "אכילה ושתייה ביום הכיפורים", fr: "Ne pas manger ni boire à Yom Kippour", src: "Lv 23:29" },
-  L197:{ he: "אכילת חמץ בפסח", fr: "Ne pas manger de ‘hamets à Pessa‘h", src: "Ex 13:3" },
-  L198:{ he: "אכילת תערובת חמץ", fr: "Ne pas manger de mélange contenant du ‘hamets", src: "Ex 12:20" },
-  L199:{ he: "אכילת חמץ מחצות י״ד", fr: "Ne pas manger de ‘hamets à partir de midi du 14 Nissan", src: "Dt 16:3" },
-  L200:{ he: "בל יראה", fr: "Que le ‘hamets ne soit pas vu chez soi", src: "Ex 13:7" },
-  L201:{ he: "בל ימצא", fr: "Que le ‘hamets ne se trouve pas chez soi", src: "Ex 12:19" },
-  L251:{ he: "אונאת דברים", fr: "Ne pas blesser autrui par la parole", src: "Lv 25:17" },
-  L301:{ he: "לא תלך רכיל", fr: "Ne pas colporter de médisance", src: "Lv 19:16" },
-  L302:{ he: "לא תשנא את אחיך בלבבך", fr: "Ne pas haïr son frère dans son cœur", src: "Lv 19:17" },
-  L303:{ he: "ולא תשא עליו חטא", fr: "Ne pas humilier autrui", src: "Lv 19:17" },
-  L304:{ he: "לא תקום", fr: "Ne pas se venger", src: "Lv 19:18" },
-  L305:{ he: "לא תטור", fr: "Ne pas garder rancune", src: "Lv 19:18" },
-  L320:{ he: "מלאכה בשבת", fr: "Ne pas travailler le Chabbat", src: "Ex 20:10" },
-  L321:{ he: "יציאה חוץ לתחום", fr: "Ne pas sortir des limites (te‘houm) le Chabbat", src: "Ex 16:29" },
-  L323:{ he: "מלאכה בראשון של פסח", fr: "Ne pas travailler le 1er jour de Pessa‘h", src: "Lv 23:7" },
-  L324:{ he: "מלאכה בשביעי של פסח", fr: "Ne pas travailler le 7e jour de Pessa‘h", src: "Lv 23:8" },
-  L325:{ he: "מלאכה בשבועות", fr: "Ne pas travailler à Chavouot", src: "Lv 23:21" },
-  L326:{ he: "מלאכה בראש השנה", fr: "Ne pas travailler à Roch Hachana", src: "Lv 23:25" },
-  L327:{ he: "מלאכה בראשון של סוכות", fr: "Ne pas travailler le 1er jour de Souccot", src: "Lv 23:35" },
-  L328:{ he: "מלאכה בשמיני עצרת", fr: "Ne pas travailler à Chemini Atseret", src: "Lv 23:36" },
-  L329:{ he: "מלאכה ביום הכיפורים", fr: "Ne pas travailler à Yom Kippour", src: "Lv 23:28" },
-
+const RAB = {
   R_NEROT_SH: { he: "הדלקת נרות שבת", fr: "Allumer les bougies de Chabbat avant le coucher du soleil", src: "Chabbat 25b" },
   R_NEROT_YT: { he: "הדלקת נרות יום טוב", fr: "Allumer les bougies de Yom Tov", src: "Pessa‘him 102b" },
   R_SEUDOT:   { he: "שלוש סעודות", fr: "Prendre les trois repas de Chabbat", src: "Chabbat 117b" },
@@ -355,9 +938,22 @@ const MZ = {
   R_SIMCHAT_TORAH: { he: "שמחת תורה", fr: "Achever et recommencer la lecture de la Torah (coutume)", src: "Méguila 31a" },
   R_EREV_YK:  { he: "אכילה בערב יום הכיפורים", fr: "Manger la veille de Kippour", src: "Yoma 81b" },
 };
-const CONST_IDS = ["A1","A2","A3","A4","A5","A6","A8","A9","A10","A11","A12","A13","A14","A15","A19","A189","A195","A206","A209","A210","A211",
-  "L1","L47","L59","L63","L172","L173","L174","L180","L181","L182","L183","L184","L185","L186","L187","L251","L301","L302","L303","L304","L305"];
-for (const [id, m] of Object.entries(MZ)) { m.id = id; m.t = id[0] === "R" ? "R" : id[0]; m.num = m.t === "R" ? null : +id.slice(1); m.perm = CONST_IDS.includes(id); }
+const MZ = {};
+const TORAH_IDS = [];
+for (const [id, cat, pop, he, fr, src] of M613) {
+  const [c, x] = cat.split(":");
+  MZ[id] = { id, t: id[0], num: +id.slice(1), cat: c, x: x || "", pop, he, fr, src };
+  TORAH_IDS.push(id);
+}
+for (const [id, m] of Object.entries(RAB)) MZ[id] = Object.assign(m, { id, t: "R", num: null, cat: "R", x: "", pop: m.fx ? "m" : "" });
+const STATIC_NOTES = {
+  A5: "Matin, après-midi et soir : le nombre et les horaires des prières sont fixés par les Sages",
+  A10: "Le soir et le matin", A12: "En semaine, le jour", A13: "En semaine, le jour", A14: "Le jour",
+  A19: "Après un repas comportant du pain", A146: "Avant de manger de la viande ou de la volaille",
+};
+const CAT_LABEL = { P: "Permanente", C: "Selon les circonstances", D: "Liée à une date", I: "Terre d’Israël", S: "Année de chemita", X: "Non applicable aujourd’hui", R: "Dérabbanan" };
+const X_LABEL = { T: "Temple et sacrifices", J: "Sanhédrin et tribunaux habilités", R: "Royauté, guerre et conquête", Y: "Jubilé et esclavage hébreu", A: "Institutions disparues" };
+const POP_LABEL = { m: "femmes dispensées", f: "femmes", k: "cohanim", n: "naziréen", g: "" };
 
 /* ===================== Calendrier hébraïque ===================== */
 const MONTH_KEYS = { tishri: "TISHRI", heshvan: "HESHVAN", cheshvan: "HESHVAN", kislev: "KISLEV", tevet: "TEVET", shevat: "SHEVAT", "adar i": "ADAR1", "adar ii": "ADAR2", adar: "ADAR", nisan: "NISAN", iyar: "IYAR", sivan: "SIVAN", tamuz: "TAMUZ", tammuz: "TAMUZ", av: "AV", elul: "ELUL" };
@@ -407,9 +1003,9 @@ function computeDay(x, o) {
     "NISAN-21": ["Pessa‘h · 7e jour", "שביעי של פסח", ["A160", "A54"], ["L324"]],
     "SIVAN-6":  ["Chavouot", "שבועות", ["A162", "A54"], ["L325"]],
     "TISHRI-1": ["Roch Hachana · 1er jour", "ראש השנה", ["A163", "A170"], ["L326"]],
-    "TISHRI-10":["Yom Kippour", "יום הכיפורים", ["A164", "A165"], ["L196", "L329"]],
-    "TISHRI-15":["Souccot · 1er jour", "סוכות", ["A166", "A168", "A169", "A54"], ["L327"]],
-    "TISHRI-22":[isr ? "Chemini Atseret · Simhat Torah" : "Chemini Atseret", "שמיני עצרת", ["A167", "A54"], ["L328"]],
+    "TISHRI-10":["Yom Kippour", "יום הכיפורים", ["A164", "A165"], ["L196", "L327"]],
+    "TISHRI-15":["Souccot · 1er jour", "סוכות", ["A166", "A168", "A169", "A54"], ["L328"]],
+    "TISHRI-22":[isr ? "Chemini Atseret · Simhat Torah" : "Chemini Atseret", "שמיני עצרת", ["A167", "A54"], ["L329"]],
   };
   const NOTES = {
     A157: "La nuit du Séder, au début du jour", A158: "Obligatoire la nuit du Séder (un kazaït), facultative ensuite",
@@ -417,7 +1013,7 @@ function computeDay(x, o) {
     A168: "Repas et nuits dans la souccah", A169: "Le jour ; de la Torah partout le 1er jour",
     L323: "Préparer la nourriture reste permis (okhel néfech)", L324: "Préparer la nourriture reste permis (okhel néfech)",
     L325: "Préparer la nourriture reste permis (okhel néfech)", L326: "Préparer la nourriture reste permis (okhel néfech)",
-    L327: "Préparer la nourriture reste permis (okhel néfech)", L328: "Préparer la nourriture reste permis (okhel néfech)",
+    L328: "Préparer la nourriture reste permis (okhel néfech)", L329: "Préparer la nourriture reste permis (okhel néfech)",
   };
   if (YT[key]) {
     const [fr, he, as, ls] = YT[key];
@@ -507,27 +1103,56 @@ function computeDay(x, o) {
   }
   if (m === "ADAR1" && d === 14) E("Pourim Katan", "פורים קטן", "");
 
-  // Mitsvot permanentes
-  for (const id of CONST_IDS) {
-    if (noTefillin && (id === "A12" || id === "A13")) continue;
-    add(id, null, { perm: true });
-  }
-  // Profil
-  let list = items;
-  if (o.women) list = list.filter(i => !MZ[i.id].fx);
-  // Une mitsva propre au jour qui est aussi permanente (ex. A189 le Chabbat Zakhor) n’est pas marquée permanente
-  return { ev, items: list };
+  return { ev, spec: items, noTefillin };
 }
 
-function tally(items, withPerm) {
-  const c = { A: 0, L: 0, R: 0, sA: 0, sL: 0 };
-  for (const i of items) {
-    if (i.susp) continue;
-    if (i.perm && !withPerm) continue;
-    const t = i.rab ? "R" : MZ[i.id].t;
-    c[t]++;
-    if (!i.perm && t !== "R") c["s" + t]++;
+function profileOK(m, o) {
+  if (m.pop === "m" && o.profile === "f") return false;
+  if (m.pop === "f" && o.profile !== "f") return false;
+  if (m.pop === "k" && o.profile !== "k") return false;
+  if (m.pop === "n") return false;
+  return true;
+}
+
+// Répartit les 613 mitsvot (et les mitsvot dérabbanan du jour) dans des groupes dont la somme fait toujours 248 + 365.
+function buckets(x, o) {
+  const B = { spec: [], perm: [], cond: [], land: [], other: [], prof: [], nonapp: [] };
+  const seen = new Set();
+  for (const i of x.r.spec) {
+    const m = MZ[i.id];
+    if (!profileOK(m, o)) { if (m.t !== "R") { B.prof.push({ id: i.id, note: "" }); seen.add(i.id); } continue; }
+    B.spec.push(i);
+    if (m.t === "R") continue;
+    seen.add(i.id);
+    if (i.susp || i.rab) B.other.push({ id: i.id, note: i.susp ? "Suspendue ce jour" : "Le jour toranique est passé" });
   }
+  const shem = x.h.y % 7 === 0;
+  for (const id of TORAH_IDS) {
+    if (seen.has(id)) continue;
+    const m = MZ[id];
+    if (m.cat === "X") { B.nonapp.push({ id }); continue; }
+    if (!profileOK(m, o)) { B.prof.push({ id }); continue; }
+    if (m.cat === "P") {
+      if (x.r.noTefillin && (id === "A12" || id === "A13")) B.other.push({ id, note: "Pas de tefillin ce jour" });
+      else B.perm.push({ id });
+    } else if (m.cat === "C") B.cond.push({ id });
+    else if (m.cat === "D") B.other.push({ id });
+    else if (m.cat === "I") (o.israel ? B.land : B.other).push({ id, note: o.israel ? "" : "En Terre d’Israël" });
+    else if (m.cat === "S") (shem && (o.israel || m.pop === "g") ? B.land : B.other).push({ id, note: shem ? "" : "Pendant l’année de chemita" });
+  }
+  return B;
+}
+
+function counts(B) {
+  const c = { A: 0, L: 0, R: 0, sA: 0, sL: 0 };
+  for (const i of B.spec) {
+    const t = MZ[i.id].t;
+    if (t === "R" || i.rab) { if (!i.susp) c.R++; continue; }
+    if (i.susp) continue;
+    c["s" + t]++;
+  }
+  c.A = c.sA; c.L = c.sL;
+  for (const k of ["perm", "cond", "land"]) for (const i of B[k]) c[MZ[i.id].t]++;
   return c;
 }
 
@@ -542,7 +1167,7 @@ function buildYear(Y, o) {
     if (x.h.m === "NISAN" && x.h.d === 16) for (let k = 0; k < 49 && i + k < arr.length; k++) arr[i + k].omer = k + 1;
   });
   const days = arr.filter(x => x.dt.getUTCFullYear() === Y);
-  for (const x of days) x.r = computeDay(x, o);
+  for (const x of days) { x.r = computeDay(x, o); x.c = counts(buckets(x, o)); }
   return days;
 }
 
@@ -556,20 +1181,21 @@ if (typeof document !== "undefined") (function () {
   const now = new Date();
   const todayT = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   const S = {
-    year: now.getFullYear(), sel: todayT, tab: "cal", filter: "all", q: "",
-    o: { israel: store.get("israel", false), women: store.get("women", false) },
-    perm: store.get("perm", true),
+    year: now.getFullYear(), sel: todayT, tab: "cal", filter: "all", cat: "all", q: "",
+    o: { israel: store.get("israel", false), profile: store.get("profile", "h") },
   };
-  let days = [], byT = new Map();
+  let days = [], byT = new Map(), repoCache = null;
   const MONTHS_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
   const DOW_HE = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
   const dateFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
   const shortFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const fmt = n => n.toLocaleString("fr-FR");
 
   function rebuild() {
     days = buildYear(S.year, S.o);
     byT = new Map(days.map(x => [x.t, x]));
+    repoCache = null;
     if (!byT.has(S.sel)) S.sel = (S.year === now.getFullYear()) ? todayT : Date.UTC(S.year, 0, 1);
     render();
   }
@@ -578,12 +1204,12 @@ if (typeof document !== "undefined") (function () {
 
   function renderTotals() {
     let A = 0, L = 0, R = 0, special = 0;
-    for (const x of days) { const c = tally(x.r.items, S.perm); A += c.A; L += c.L; R += c.R; if (c.sA + c.sL) special++; }
-    const fmt = n => n.toLocaleString("fr-FR");
+    for (const x of days) { A += x.c.A; L += x.c.L; R += x.c.R; if (x.c.sA + x.c.sL) special++; }
+    const x = byT.get(S.sel);
     $("#totals").innerHTML = `
-      <div class="total a"><span class="k">Asé accomplies sur l’année</span><span class="v">${fmt(A)}</span></div>
-      <div class="total l"><span class="k">Lo ta’asé à observer</span><span class="v">${fmt(L)}</span></div>
-      <div class="total r"><span class="k">Mitsvot dérabbanan</span><span class="v">${fmt(R)}</span></div>
+      <div class="total a"><span class="k">Asé applicables, cumul ${S.year}</span><span class="v">${fmt(A)}</span></div>
+      <div class="total l"><span class="k">Lo ta’asé applicables, cumul ${S.year}</span><span class="v">${fmt(L)}</span></div>
+      <div class="total r"><span class="k">Mitsvot dérabbanan datées</span><span class="v">${fmt(R)}</span></div>
       <div class="total"><span class="k">Jours avec mitsvot propres</span><span class="v">${special} <small style="font-size:.9rem;color:var(--muted)">/ ${days.length}</small></span></div>`;
   }
 
@@ -596,9 +1222,8 @@ if (typeof document !== "undefined") (function () {
       html += DOW_HE.map(dw => `<div class="dow">${dw}</div>`).join("");
       for (let i = 0; i < md[0].dow; i++) html += "<div></div>";
       for (const x of md) {
-        const c = tally(x.r.items, false);
-        const cls = ["cell", "l" + level(c)];
-        if (x.r.items.some(i => (i.rab || MZ[i.id].t === "R") && i.id !== "R_NEROT_SH" && i.id !== "R_SEUDOT")) cls.push("rb");
+        const cls = ["cell", "l" + level(x.c)];
+        if (x.r.spec.some(i => (i.rab || MZ[i.id].t === "R") && i.id !== "R_NEROT_SH" && i.id !== "R_SEUDOT")) cls.push("rb");
         if (x.t === todayT) cls.push("today");
         if (x.t === S.sel) cls.push("sel");
         const label = `${x.dt.getUTCDate()} ${MONTHS_FR[mo]}, ${x.h.d} ${FR_MONTH[x.h.m]}${x.r.ev.length ? " — " + x.r.ev.map(e => e.fr).join(", ") : ""}`;
@@ -611,42 +1236,68 @@ if (typeof document !== "undefined") (function () {
 
   function li(i) {
     const m = MZ[i.id], t = i.rab ? "R" : m.t;
-    const n = t === "R" ? (m.t === "R" ? "דרבנן" : "דרבנן") : (m.t === "A" ? "ע׳ " : "ל״ת ") + m.num;
-    const note = [i.note, i.rab ? "Ce jour supplémentaire est d’institution rabbinique" : "", i.perm ? m.note : ""].filter(Boolean).join(" · ");
-    return `<li class="${i.susp ? "susp" : ""}"><span class="n he">${n}</span><div class="t"><div class="row1"><span class="he">${esc(m.he)}</span><span class="src">${esc(m.src)}</span></div><span class="fr">${esc(m.fr)}</span>${note ? `<span class="note">${esc(note)}</span>` : ""}</div></li>`;
+    const n = m.t === "R" ? "דרבנן" : (m.t === "A" ? "ע׳ " : "ל״ת ") + m.num;
+    const note = [i.note, i.rab ? "Ce jour supplémentaire est d’institution rabbinique" : "", STATIC_NOTES[i.id] && !i.note ? STATIC_NOTES[i.id] : "", m.pop && POP_LABEL[m.pop] ? "Concerne : " + POP_LABEL[m.pop] : ""].filter(Boolean).join(" · ");
+    return `<li class="${i.susp ? "susp" : ""} t${t}"><span class="n he">${n}</span><div class="t"><div class="row1"><span class="fr">${esc(m.fr)}</span><span class="src">${esc(m.src)}</span></div><span class="he hq">${esc(m.he)}</span>${note ? `<span class="note">${esc(note)}</span>` : ""}</div></li>`;
   }
+  const ul = list => list.length ? `<ul class="mz">${list.map(li).join("")}</ul>` : `<p class="empty">Aucune.</p>`;
+  const split = list => ({ A: list.filter(i => MZ[i.id].t === "A"), L: list.filter(i => MZ[i.id].t === "L") });
 
-  function sect(type, title, heTitle, items) {
-    const spec = items.filter(i => !i.perm), perm = items.filter(i => i.perm);
-    let h = `<div class="sect ${type.toLowerCase()}"><h4><span>${title}</span><span class="he">${heTitle}</span></h4>`;
-    h += spec.length ? `<ul class="mz">${spec.map(li).join("")}</ul>` : `<p class="empty">Aucune mitsva propre à ce jour.</p>`;
-    if (perm.length && S.perm) h += `<details class="perm"><summary>Mitsvot permanentes (${perm.length})</summary><ul class="mz">${perm.map(li).join("")}</ul></details>`;
-    return h + "</div>";
-  }
+  const GROUPS = [
+    ["perm", "Permanentes", "Elles s’appliquent à chaque instant, aujourd’hui comme tous les jours."],
+    ["cond", "Selon les circonstances", "Elles s’appliquent aujourd’hui si la situation se présente (repas, commerce, objet perdu, mariage…)."],
+    ["land", "Terre d’Israël et chemita", "Mitsvot agricoles en vigueur en Terre d’Israël, et celles de l’année de chemita."],
+    ["other", "Réservées à d’autres jours ou lieux", "Mitsvot en vigueur aujourd’hui, mais pas à cette date ou pas dans ce lieu."],
+    ["prof", "Ne concernent pas ce profil", "Mitsvot réservées aux cohanim, aux naziréens, aux hommes ou aux femmes."],
+    ["nonapp", "Non applicables aujourd’hui", "Elles dépendent du Temple, du Sanhédrin, de la royauté ou du jubilé."],
+  ];
 
   function renderDay() {
     const x = byT.get(S.sel); if (!x) return;
-    const c = tally(x.r.items, S.perm);
-    const typeOf = i => i.rab ? "R" : MZ[i.id].t;
-    const A = x.r.items.filter(i => typeOf(i) === "A"), L = x.r.items.filter(i => typeOf(i) === "L"), R = x.r.items.filter(i => typeOf(i) === "R");
+    const B = buckets(x, S.o), c = x.c;
+    const spec = B.spec, sA = spec.filter(i => !i.rab && MZ[i.id].t === "A"), sL = spec.filter(i => !i.rab && MZ[i.id].t === "L"), sR = spec.filter(i => i.rab || MZ[i.id].t === "R");
+    const nA = sA.filter(i => !i.susp).length, nL = sL.filter(i => !i.susp).length;
+    const row = (label, a, l, cls) => `<tr class="${cls || ""}"><th scope="row">${label}</th><td class="num">${a}</td><td class="num">${l}</td></tr>`;
+    let tbl = row("Propres à ce jour", nA, nL, "hl");
+    for (const [k, label] of GROUPS) { const s = split(B[k]); tbl += row(label, s.A.length, s.L.length, k === "perm" || k === "cond" || k === "land" ? "hl" : "dim"); }
+    tbl += row("Total", 248, 365, "sum");
+
+    let groups = "";
+    for (const [k, label, desc] of GROUPS) {
+      const s = split(B[k]);
+      let body;
+      if (k === "nonapp") {
+        body = Object.entries(X_LABEL).map(([r, lab]) => {
+          const g = B[k].filter(i => MZ[i.id].x === r); if (!g.length) return "";
+          const gs = split(g);
+          return `<h5>${lab} <small>${gs.A.length} asé · ${gs.L.length} lo ta’asé</small></h5>${gs.A.length ? ul(gs.A) : ""}${gs.L.length ? ul(gs.L) : ""}`;
+        }).join("");
+      } else {
+        body = `<h5 class="ca">מצוות עשה <small>${s.A.length}</small></h5>${ul(s.A)}<h5 class="cl">מצוות לא תעשה <small>${s.L.length}</small></h5>${ul(s.L)}`;
+      }
+      groups += `<details class="grp g-${k}" data-k="${k}"><summary><span>${label}</span><span class="cnt"><b class="ca">${s.A.length}</b> · <b class="cl">${s.L.length}</b></span></summary><p class="gdesc">${desc}</p>${body}</details>`;
+    }
+
     $("#day").innerHTML = `
       <div class="dhead">
         <div>
           <h2>${esc(dateFmt.format(x.dt))}</h2>
           <div class="hdate he">${hebStr(x.h)}</div>
-          <div class="hdate-fr">${x.h.d} ${FR_MONTH[x.h.m]} ${x.h.y}</div>
+          <div class="hdate-fr">${x.h.d} ${FR_MONTH[x.h.m]} ${x.h.y}${x.h.y % 7 === 0 ? " · année de chemita" : ""}</div>
         </div>
         <div class="dnav"><button id="dPrev" aria-label="Jour précédent">‹</button><button id="dNext" aria-label="Jour suivant">›</button></div>
       </div>
       ${x.r.ev.length ? `<div class="chips">${x.r.ev.map(e => `<span class="chip ${e.cls}">${esc(e.fr)} <span class="he">${e.he}</span></span>`).join("")}</div>` : ""}
       <div class="counts">
-        <div class="count a"><b>${c.A}</b><span>מצוות עשה</span><small>${c.sA} propre${c.sA > 1 ? "s" : ""} au jour</small></div>
-        <div class="count l"><b>${c.L}</b><span>לא תעשה</span><small>${c.sL} propre${c.sL > 1 ? "s" : ""} au jour</small></div>
-        <div class="count r"><b>${c.R}</b><span>דרבנן</span><small>de nos Sages</small></div>
+        <div class="count a"><b>${c.A}</b><span>מצוות עשה</span><small>applicables sur 248</small></div>
+        <div class="count l"><b>${c.L}</b><span>לא תעשה</span><small>applicables sur 365</small></div>
+        <div class="count r"><b>${c.R}</b><span>דרבנן</span><small>propres au jour</small></div>
       </div>
-      ${sect("A", "Commandements positifs", "מצוות עשה", A)}
-      ${sect("L", "Interdits", "מצוות לא תעשה", L)}
-      ${R.length ? sect("R", "Mitsvot de nos Sages", "מצוות דרבנן", R) : ""}`;
+      <div class="tablewrap"><table class="bk"><thead><tr><th>Répartition des 613</th><th class="num">Asé</th><th class="num">Lo ta’asé</th></tr></thead><tbody>${tbl}</tbody></table></div>
+      <div class="sect a"><h4><span>Propres à ce jour · positifs</span><span class="he">מצוות עשה</span></h4>${sA.length ? ul(sA) : `<p class="empty">Aucune mitsva positive propre à ce jour.</p>`}</div>
+      <div class="sect l"><h4><span>Propres à ce jour · interdits</span><span class="he">לא תעשה</span></h4>${sL.length ? ul(sL) : `<p class="empty">Aucun interdit propre à ce jour.</p>`}</div>
+      ${sR.length ? `<div class="sect r"><h4><span>Mitsvot de nos Sages</span><span class="he">מצוות דרבנן</span></h4>${ul(sR)}</div>` : ""}
+      <div class="groups">${groups}</div>`;
     $("#dPrev").onclick = () => step(-1);
     $("#dNext").onclick = () => step(1);
   }
@@ -654,47 +1305,56 @@ if (typeof document !== "undefined") (function () {
   function step(n) {
     const t = S.sel + n * 864e5, y = new Date(t).getUTCFullYear();
     S.sel = t;
-    if (y !== S.year) { S.year = y; rebuild(); } else { renderCal(); renderDay(); }
+    if (y !== S.year) { S.year = y; rebuild(); } else { renderTotals(); renderCal(); renderDay(); }
+  }
+
+  function repoCounts() {
+    if (repoCache) return repoCache;
+    const cnt = {};
+    for (const x of days) {
+      const B = buckets(x, S.o);
+      for (const i of B.spec) if (!i.susp) cnt[i.id] = (cnt[i.id] || 0) + 1;
+      for (const k of ["perm", "cond", "land"]) for (const i of B[k]) cnt[i.id] = (cnt[i.id] || 0) + 1;
+    }
+    return (repoCache = cnt);
   }
 
   function renderRepo() {
-    const cnt = {};
-    for (const x of days) for (const i of x.r.items) {
-      if (i.susp || (i.perm && !S.perm)) continue;
-      cnt[i.id] = (cnt[i.id] || 0) + 1;
-    }
+    const cnt = repoCounts();
     const q = S.q.trim().toLowerCase();
-    const rows = Object.values(MZ).filter(m => (S.filter === "all" || m.t === S.filter) && (!q || (m.he + " " + m.fr + " " + m.src + " " + (m.num || "")).toLowerCase().includes(q)));
+    const rows = Object.values(MZ).filter(m => (S.filter === "all" || m.t === S.filter) && (S.cat === "all" || m.cat === S.cat) &&
+      (!q || (m.he + " " + m.fr + " " + m.src + " " + (m.num || "") + " " + CAT_LABEL[m.cat]).toLowerCase().includes(q)));
     rows.sort((a, b) => "ALR".indexOf(a.t) - "ALR".indexOf(b.t) || (a.num || 0) - (b.num || 0));
     const max = days.length;
+    $("#repoCount").textContent = `${rows.length} mitsva${rows.length > 1 ? "s" : ""}`;
     $("#repoBody").innerHTML = rows.map(m => {
       const n = cnt[m.id] || 0;
       const tg = m.t === "A" ? '<span class="tag a">Asé</span>' : m.t === "L" ? '<span class="tag l">Lo ta’asé</span>' : '<span class="tag r">Dérabbanan</span>';
-      return `<tr><td>${tg}${m.perm ? ' <span class="tag p">permanente</span>' : ""}${m.fx ? ' <span class="tag p">femmes dispensées</span>' : ""}</td>
+      const cat = m.cat === "X" ? `Non applicable · ${X_LABEL[m.x]}` : CAT_LABEL[m.cat];
+      return `<tr><td>${tg}</td>
         <td class="num">${m.num || "–"}</td>
-        <td><div class="he">${esc(m.he)}</div><div>${esc(m.fr)}</div></td>
+        <td><div>${esc(m.fr)}</div><div class="he hq">${esc(m.he)}</div></td>
+        <td><span class="tag p">${esc(cat)}</span>${m.pop && POP_LABEL[m.pop] ? ` <span class="tag p">${POP_LABEL[m.pop]}</span>` : ""}</td>
         <td style="white-space:nowrap">${esc(m.src)}</td>
         <td class="num">${n}<div class="bar"><i style="width:${(100 * n / max).toFixed(1)}%"></i></div></td></tr>`;
-    }).join("") || `<tr><td colspan="5" class="empty">Aucune mitsva ne correspond à « ${esc(S.q)} ».</td></tr>`;
+    }).join("") || `<tr><td colspan="6" class="empty">Aucune mitsva ne correspond à cette recherche.</td></tr>`;
     document.querySelectorAll(".yy").forEach(e => e.textContent = S.year);
   }
 
   function renderEv() {
-    const rows = days.filter(x => x.r.ev.some(e => e.cls !== "shabbat" || e.fr !== "Chabbat"));
+    const rows = days.filter(x => x.r.ev.some(e => e.fr !== "Chabbat"));
     $("#evList").innerHTML = rows.map(x => {
-      const c = tally(x.r.items, false);
       const evs = x.r.ev.filter(e => e.fr !== "Chabbat");
       return `<button class="evrow" data-t="${x.t}"><span class="gd">${esc(shortFmt.format(x.dt))}</span><span class="hd he">${gem(x.h.d)} ${HE_MONTH[x.h.m]}</span>
         <span>${evs.map(e => `<span class="chip ${e.cls}">${esc(e.fr)}</span>`).join(" ")}</span>
-        <span class="cnt">${c.sA} asé · ${c.sL} lo ta’asé · ${c.R} dérab.</span></button>`;
+        <span class="cnt">${x.c.sA} asé · ${x.c.sL} lo ta’asé · ${x.c.R} dérab. propres</span></button>`;
     }).join("");
   }
 
   function render() {
     $("#yLabel").textContent = S.year;
     $("#oIsr").setAttribute("aria-pressed", S.o.israel); $("#oDias").setAttribute("aria-pressed", !S.o.israel);
-    $("#oWomen").setAttribute("aria-pressed", S.o.women); $("#oMen").setAttribute("aria-pressed", !S.o.women);
-    $("#oPerm").checked = S.perm;
+    document.querySelectorAll("#profile button").forEach(b => b.setAttribute("aria-pressed", b.dataset.p === S.o.profile));
     for (const [tab, view, btn] of [["cal", "#viewCal", "#tabCal"], ["repo", "#viewRepo", "#tabRepo"], ["ev", "#viewEv", "#tabEv"]]) {
       $(view).hidden = S.tab !== tab; $(btn).setAttribute("aria-selected", S.tab === tab);
     }
@@ -708,21 +1368,20 @@ if (typeof document !== "undefined") (function () {
   $("#yNext").onclick = () => { S.year++; rebuild(); };
   $("#oIsr").onclick = () => { S.o.israel = true; store.set("israel", true); rebuild(); };
   $("#oDias").onclick = () => { S.o.israel = false; store.set("israel", false); rebuild(); };
-  $("#oMen").onclick = () => { S.o.women = false; store.set("women", false); rebuild(); };
-  $("#oWomen").onclick = () => { S.o.women = true; store.set("women", true); rebuild(); };
-  $("#oPerm").onchange = e => { S.perm = e.target.checked; store.set("perm", S.perm); render(); };
+  document.querySelectorAll("#profile button").forEach(b => b.onclick = () => { S.o.profile = b.dataset.p; store.set("profile", S.o.profile); rebuild(); });
   $("#goToday").onclick = () => { S.tab = "cal"; S.sel = todayT; if (S.year !== now.getFullYear()) { S.year = now.getFullYear(); rebuild(); } else render(); };
   $("#tabCal").onclick = () => { S.tab = "cal"; render(); };
   $("#tabRepo").onclick = () => { S.tab = "repo"; render(); };
   $("#tabEv").onclick = () => { S.tab = "ev"; render(); };
-  $("#months").addEventListener("click", e => { const b = e.target.closest(".cell"); if (!b) return; S.sel = +b.dataset.t; renderCal(); renderDay(); if (window.innerWidth <= 920) $("#day").scrollIntoView({ behavior: "smooth", block: "start" }); });
+  $("#months").addEventListener("click", e => { const b = e.target.closest(".cell"); if (!b) return; S.sel = +b.dataset.t; renderTotals(); renderCal(); renderDay(); if (window.innerWidth <= 920) $("#day").scrollIntoView({ behavior: "smooth", block: "start" }); });
   $("#evList").addEventListener("click", e => { const b = e.target.closest(".evrow"); if (!b) return; S.sel = +b.dataset.t; S.tab = "cal"; render(); });
   $("#q").addEventListener("input", e => { S.q = e.target.value; renderRepo(); });
-  document.querySelectorAll("#viewRepo .seg button").forEach(b => b.onclick = () => {
-    S.filter = b.dataset.f; document.querySelectorAll("#viewRepo .seg button").forEach(x => x.setAttribute("aria-pressed", x === b)); renderRepo();
+  $("#catSel").addEventListener("change", e => { S.cat = e.target.value; renderRepo(); });
+  document.querySelectorAll("#typeSeg button").forEach(b => b.onclick = () => {
+    S.filter = b.dataset.f; document.querySelectorAll("#typeSeg button").forEach(x => x.setAttribute("aria-pressed", x === b)); renderRepo();
   });
   document.addEventListener("keydown", e => {
-    if (S.tab !== "cal" || e.target.matches("input")) return;
+    if (S.tab !== "cal" || e.target.matches("input, select")) return;
     if (e.key === "ArrowLeft") step(-1); else if (e.key === "ArrowRight") step(1);
   });
   rebuild();
