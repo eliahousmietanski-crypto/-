@@ -1,0 +1,730 @@
+<title>Louah HaMitsvot</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@400;600;700&display=swap">
+<style>
+/* Layout: barre de réglages, puis calendrier annuel à gauche et fiche du jour à droite (empilés sur mobile). */
+:root {
+  --bg: #f3f5fa;
+  --surface: #ffffff;
+  --ink: #131a30;
+  --muted: #5a6381;
+  --line: #dce1ed;
+  --tekhelet: #1d4ea6;          /* accent : bleu tekhelet */
+  --tekhelet-ink: #ffffff;
+  --lvl0: #eef1f7;
+  --lvl1: #dbe5f8;
+  --lvl2: #b2c7f0;
+  --lvl3: #6f95de;
+  --lvl4: #1d4ea6;
+  --lvl-ink-strong: #ffffff;
+  --ase: #1d4ea6;
+  --lo: #9a2847;
+  --rab: #96700c;
+  --ase-soft: #e4ecfb;
+  --lo-soft: #f8e5eb;
+  --rab-soft: #f6eed8;
+  --display: "Frank Ruhl Libre", "Times New Roman", serif;
+  --body: "Assistant", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1120; --surface: #151a2c; --ink: #e8ebf5; --muted: #9ba4c1; --line: #283049;
+    --tekhelet: #84a9f2; --tekhelet-ink: #0d1120;
+    --lvl0: #1a2035; --lvl1: #1d2b4f; --lvl2: #25427d; --lvl3: #3a66ba; --lvl4: #84a9f2; --lvl-ink-strong: #0d1120;
+    --ase: #84a9f2; --lo: #ec88a4; --rab: #e6bd55;
+    --ase-soft: #1b2949; --lo-soft: #3a1b29; --rab-soft: #352b13;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1120; --surface: #151a2c; --ink: #e8ebf5; --muted: #9ba4c1; --line: #283049;
+  --tekhelet: #84a9f2; --tekhelet-ink: #0d1120;
+  --lvl0: #1a2035; --lvl1: #1d2b4f; --lvl2: #25427d; --lvl3: #3a66ba; --lvl4: #84a9f2; --lvl-ink-strong: #0d1120;
+  --ase: #84a9f2; --lo: #ec88a4; --rab: #e6bd55;
+  --ase-soft: #1b2949; --lo-soft: #3a1b29; --rab-soft: #352b13;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 20px; }
+.he { font-family: var(--display); direction: rtl; unicode-bidi: isolate; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, summary:focus-visible, select:focus-visible { outline: 2px solid var(--tekhelet); outline-offset: 2px; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.brand h1 { margin: 0; font-family: var(--display); font-weight: 900; font-size: 2rem; line-height: 1.1; text-wrap: balance; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.brand h1 .he { color: var(--tekhelet); font-size: 1.15em; }
+.brand p { margin: 4px 0 0; color: var(--muted); max-width: 60ch; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 6px 12px; font-weight: 600; font-size: 0.9rem; }
+.seg button[aria-pressed="true"] { background: var(--tekhelet); color: var(--tekhelet-ink); }
+.yearnav { display: inline-flex; align-items: center; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
+.yearnav button { border: 0; background: transparent; padding: 4px 10px; font-size: 1.1rem; border-radius: 6px; }
+.yearnav button:hover { background: var(--lvl0); }
+.yearnav strong { font-variant-numeric: tabular-nums; min-width: 4ch; text-align: center; font-size: 1.05rem; }
+.chk { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; font-weight: 600; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 5px 12px; font-weight: 600; font-size: 0.9rem; }
+.btn:hover { border-color: var(--tekhelet); }
+
+nav.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+nav.tabs button { border: 0; background: transparent; padding: 10px 14px; font-weight: 700; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--tekhelet); }
+
+.totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.total { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; }
+.total .k { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; }
+.total .v { font-family: var(--display); font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.total.a .v { color: var(--ase); } .total.l .v { color: var(--lo); } .total.r .v { color: var(--rab); }
+
+.main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 920px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+.months { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+.month { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+.month h3 { margin: 0 0 6px; font-size: 0.95rem; display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+.month h3 small { color: var(--muted); font-weight: 600; font-size: 0.75rem; text-align: right; }
+.grid7 { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.dow { text-align: center; font-size: 0.7rem; color: var(--muted); font-family: var(--display); padding-bottom: 2px; }
+.cell { position: relative; aspect-ratio: 1; border: 0; border-radius: 5px; background: var(--lvl0); padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; font-variant-numeric: tabular-nums; max-width: 100%; }
+.cell .g { font-size: 0.78rem; font-weight: 600; }
+.cell .h { font-size: 0.6rem; font-family: var(--display); opacity: 0.75; margin-top: 1px; }
+.cell.l1 { background: var(--lvl1); } .cell.l2 { background: var(--lvl2); } .cell.l3 { background: var(--lvl3); color: #fff; }
+.cell.l4 { background: var(--lvl4); color: var(--lvl-ink-strong); }
+.cell.rb::after { content: ""; position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%; background: var(--rab); }
+.cell.today { box-shadow: inset 0 0 0 2px var(--ink); }
+.cell.sel { outline: 2px solid var(--lo); outline-offset: 1px; z-index: 1; }
+.cell:hover { filter: brightness(0.95); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
+.legend .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
+.legend .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--rab); margin-right: 4px; vertical-align: 1px; }
+
+.day { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow: auto; }
+@media (max-width: 920px) { .day { position: static; max-height: none; } }
+.day .dhead { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+.day h2 { margin: 0; font-family: var(--display); font-size: 1.45rem; line-height: 1.15; text-transform: capitalize; }
+.day .hdate { font-size: 1.35rem; color: var(--tekhelet); font-weight: 700; }
+.day .hdate-fr { color: var(--muted); font-size: 0.85rem; }
+.dnav { display: flex; gap: 4px; }
+.dnav button { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; width: 32px; height: 32px; font-size: 1rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; gap: 6px; align-items: baseline; border-radius: 999px; padding: 3px 10px; font-size: 0.85rem; font-weight: 700; background: var(--lvl0); }
+.chip.yt { background: var(--tekhelet); color: var(--tekhelet-ink); }
+.chip.shabbat { background: var(--lvl2); color: var(--ink); }
+.chip.fast { background: var(--lo-soft); color: var(--lo); }
+.chip.rabb { background: var(--rab-soft); color: var(--rab); }
+.chip .he { font-weight: 500; }
+.counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.count { border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; }
+.count b { font-family: var(--display); font-size: 1.8rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.count span { font-size: 0.78rem; font-weight: 700; }
+.count small { font-size: 0.72rem; opacity: 0.85; }
+.count.a { background: var(--ase-soft); color: var(--ase); }
+.count.l { background: var(--lo-soft); color: var(--lo); }
+.count.r { background: var(--rab-soft); color: var(--rab); }
+.sect h4 { margin: 0 0 6px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.07em; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.sect.a h4 { color: var(--ase); } .sect.l h4 { color: var(--lo); } .sect.r h4 { color: var(--rab); }
+.sect h4 .he { text-transform: none; letter-spacing: 0; font-size: 1rem; }
+ul.mz { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+ul.mz li { display: grid; grid-template-columns: 3.4rem minmax(0, 1fr); gap: 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); }
+ul.mz li .n { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 0.8rem; padding-top: 2px; }
+.sect.a .n { color: var(--ase); } .sect.l .n { color: var(--lo); } .sect.r .n { color: var(--rab); }
+ul.mz li .t { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+ul.mz li .t .row1 { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+ul.mz li .t .he { font-size: 1.05rem; font-weight: 700; }
+ul.mz li .fr { font-size: 0.92rem; }
+ul.mz li .src { font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
+ul.mz li .note { font-size: 0.82rem; color: var(--muted); }
+ul.mz li.susp { opacity: 0.6; }
+ul.mz li.susp .fr { text-decoration: line-through; }
+.empty { color: var(--muted); font-size: 0.88rem; font-style: italic; margin: 0; }
+details.perm { margin-top: 6px; }
+details.perm summary { cursor: pointer; font-size: 0.85rem; font-weight: 700; color: var(--muted); padding: 4px 0; }
+details.perm ul { margin-top: 6px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+.repo-tools { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; align-items: center; }
+.repo-tools input { flex: 1 1 220px; min-width: 0; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); position: sticky; top: 0; background: var(--surface); }
+td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+td .he { font-weight: 700; font-size: 1rem; }
+.tag { display: inline-block; border-radius: 4px; padding: 1px 6px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+.tag.a { background: var(--ase-soft); color: var(--ase); }
+.tag.l { background: var(--lo-soft); color: var(--lo); }
+.tag.r { background: var(--rab-soft); color: var(--rab); }
+.tag.p { background: var(--lvl0); color: var(--muted); }
+.bar { height: 6px; border-radius: 3px; background: var(--lvl0); overflow: hidden; min-width: 60px; margin-top: 4px; }
+.bar i { display: block; height: 100%; background: var(--tekhelet); }
+.evlist { display: flex; flex-direction: column; }
+.evrow { display: grid; grid-template-columns: 9rem 8rem minmax(0, 1fr) auto; gap: 10px; padding: 8px 6px; border-bottom: 1px solid var(--line); align-items: baseline; background: transparent; border-left: 0; border-right: 0; border-top: 0; text-align: left; width: 100%; }
+.evrow:hover { background: var(--lvl0); }
+.evrow .gd { font-variant-numeric: tabular-nums; font-weight: 600; }
+.evrow .hd { color: var(--tekhelet); }
+.evrow .cnt { font-size: 0.8rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { .evrow { grid-template-columns: minmax(0, 1fr) auto; } .evrow .hd { text-align: right; } }
+footer { color: var(--muted); font-size: 0.82rem; max-width: 80ch; display: flex; flex-direction: column; gap: 6px; }
+footer p { margin: 0; }
+@media (prefers-reduced-motion: no-preference) { .cell { transition: filter .12s; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1><span>Louah HaMitsvot</span> <span class="he">לוח המצוות</span></h1>
+      <p>Les <span class="he">מצוות עשה</span> et <span class="he">לא תעשה</span> qui s’appliquent chaque jour de l’année, comptées et répertoriées, avec les mitsvot de nos Sages.</p>
+    </div>
+    <div class="controls">
+      <div class="yearnav" aria-label="Année">
+        <button id="yPrev" aria-label="Année précédente">‹</button>
+        <strong id="yLabel">2026</strong>
+        <button id="yNext" aria-label="Année suivante">›</button>
+      </div>
+      <div class="seg" role="group" aria-label="Lieu">
+        <button id="oIsr" aria-pressed="false">Israël</button>
+        <button id="oDias" aria-pressed="true">Diaspora</button>
+      </div>
+      <div class="seg" role="group" aria-label="Profil">
+        <button id="oMen" aria-pressed="true">Homme</button>
+        <button id="oWomen" aria-pressed="false">Femme</button>
+      </div>
+      <label class="chk"><input type="checkbox" id="oPerm" checked> Mitsvot permanentes</label>
+      <button class="btn" id="goToday">Aujourd’hui</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tabCal" aria-selected="true">Calendrier</button>
+    <button role="tab" id="tabRepo" aria-selected="false">Répertoire des mitsvot</button>
+    <button role="tab" id="tabEv" aria-selected="false">Fêtes et jeûnes</button>
+  </nav>
+
+  <section class="totals" id="totals"></section>
+
+  <section id="viewCal" class="main">
+    <div>
+      <div class="months" id="months"></div>
+      <div class="legend">
+        <span>Mitsvot de la Torah propres au jour :</span>
+        <span><i class="sw" style="background:var(--lvl0)"></i>0</span>
+        <span><i class="sw" style="background:var(--lvl1)"></i>1–2</span>
+        <span><i class="sw" style="background:var(--lvl2)"></i>3–4</span>
+        <span><i class="sw" style="background:var(--lvl3)"></i>5–6</span>
+        <span><i class="sw" style="background:var(--lvl4)"></i>7 et +</span>
+        <span><i class="dot"></i>mitsva dérabbanan (hors Chabbat)</span>
+      </div>
+    </div>
+    <aside class="day" id="day" aria-live="polite"></aside>
+  </section>
+
+  <section id="viewRepo" class="panel" hidden>
+    <div class="repo-tools">
+      <input id="q" type="search" placeholder="Rechercher : chofar, ‘hamets, שבת, Lv 23…" aria-label="Rechercher une mitsva">
+      <div class="seg" role="group" aria-label="Filtrer par type">
+        <button data-f="all" aria-pressed="true">Toutes</button>
+        <button data-f="A" aria-pressed="false">Asé</button>
+        <button data-f="L" aria-pressed="false">Lo ta’asé</button>
+        <button data-f="R" aria-pressed="false">Dérabbanan</button>
+      </div>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Type</th><th>N°</th><th>Mitsva</th><th>Source</th><th style="text-align:right">Jours en <span class="yy"></span></th></tr></thead>
+      <tbody id="repoBody"></tbody>
+    </table></div>
+  </section>
+
+  <section id="viewEv" class="panel" hidden>
+    <div class="evlist" id="evList"></div>
+  </section>
+
+  <footer>
+    <p>Le jour hébraïque commence la veille au coucher du soleil. Une mitsva « de la nuit » (Séder, bougie de ‘Hanoucca, compte du Omer) s’accomplit donc le soir qui précède la date civile affichée.</p>
+    <p>Numérotation selon le Séfer HaMitsvot du Rambam. Seules les mitsvot applicables aujourd’hui (sans le Temple) sont retenues. La liste des mitsvot permanentes est une sélection des principales obligations constantes, pas l’inventaire complet des 613. Pour la pratique, consultez votre rav.</p>
+  </footer>
+</div>
+
+<script>
+/* ===================== Données ===================== */
+// t: A = מצוות עשה, L = מצוות לא תעשה, R = דרבנן ; fx: femmes dispensées (mitsva liée au temps)
+const MZ = {
+  A1:  { he: "האמונה במציאות ה׳", fr: "Savoir que Dieu existe", src: "Ex 20:2" },
+  A2:  { he: "ייחוד ה׳", fr: "Proclamer l’unité de Dieu", src: "Dt 6:4" },
+  A3:  { he: "אהבת ה׳", fr: "Aimer Dieu", src: "Dt 6:5" },
+  A4:  { he: "יראת ה׳", fr: "Craindre Dieu", src: "Dt 6:13" },
+  A5:  { he: "תפילה", fr: "Servir Dieu par la prière", src: "Ex 23:25" },
+  A6:  { he: "לדבקה בחכמים", fr: "S’attacher aux sages de la Torah", src: "Dt 10:20" },
+  A8:  { he: "והלכת בדרכיו", fr: "Marcher dans Ses voies", src: "Dt 28:9" },
+  A9:  { he: "קידוש השם", fr: "Sanctifier le Nom de Dieu", src: "Lv 22:32" },
+  A10: { he: "קריאת שמע", fr: "Réciter le Chema matin et soir", src: "Dt 6:7", fx: 1 },
+  A11: { he: "תלמוד תורה", fr: "Étudier et enseigner la Torah", src: "Dt 6:7", fx: 1 },
+  A12: { he: "תפילין של ראש", fr: "Mettre les tefillin de la tête", src: "Dt 6:8", fx: 1, note: "Pas le Chabbat ni le Yom Tov" },
+  A13: { he: "תפילין של יד", fr: "Mettre les tefillin du bras", src: "Dt 6:8", fx: 1, note: "Pas le Chabbat ni le Yom Tov" },
+  A14: { he: "ציצית", fr: "Porter les tsitsit sur un vêtement à quatre coins", src: "Nb 15:38", fx: 1, note: "Le jour" },
+  A15: { he: "מזוזה", fr: "Avoir une mezouza aux portes", src: "Dt 6:9" },
+  A19: { he: "ברכת המזון", fr: "Bénir après un repas de pain", src: "Dt 8:10" },
+  A54: { he: "שמחה ברגלים", fr: "Se réjouir pendant les fêtes de pèlerinage", src: "Dt 16:14" },
+  A154:{ he: "שביתה בשבת", fr: "Se reposer le Chabbat", src: "Ex 23:12" },
+  A155:{ he: "קידוש היום (זכור)", fr: "Sanctifier le Chabbat par la parole", src: "Ex 20:8" },
+  A156:{ he: "השבתת חמץ", fr: "Éliminer le ‘hamets", src: "Ex 12:15" },
+  A157:{ he: "סיפור יציאת מצרים", fr: "Raconter la sortie d’Égypte", src: "Ex 13:8" },
+  A158:{ he: "אכילת מצה", fr: "Manger de la matsa", src: "Ex 12:18" },
+  A159:{ he: "שביתה ביום ראשון של פסח", fr: "Se reposer le 1er jour de Pessa‘h", src: "Ex 12:16" },
+  A160:{ he: "שביתה בשביעי של פסח", fr: "Se reposer le 7e jour de Pessa‘h", src: "Ex 12:16" },
+  A161:{ he: "ספירת העומר", fr: "Compter le Omer", src: "Lv 23:15", fx: 1 },
+  A162:{ he: "שביתה בשבועות", fr: "Se reposer à Chavouot", src: "Lv 23:21" },
+  A163:{ he: "שביתה בראש השנה", fr: "Se reposer à Roch Hachana", src: "Lv 23:24" },
+  A164:{ he: "עינוי ביום הכיפורים", fr: "Jeûner à Yom Kippour", src: "Lv 16:29" },
+  A165:{ he: "שביתה ביום הכיפורים", fr: "Se reposer à Yom Kippour", src: "Lv 23:32" },
+  A166:{ he: "שביתה בראשון של סוכות", fr: "Se reposer le 1er jour de Souccot", src: "Lv 23:35" },
+  A167:{ he: "שביתה בשמיני עצרת", fr: "Se reposer à Chemini Atseret", src: "Lv 23:36" },
+  A168:{ he: "ישיבה בסוכה", fr: "Résider dans la souccah", src: "Lv 23:42", fx: 1 },
+  A169:{ he: "נטילת לולב", fr: "Prendre le loulav et les trois autres espèces", src: "Lv 23:40", fx: 1 },
+  A170:{ he: "שמיעת שופר", fr: "Entendre le chofar", src: "Nb 29:1", fx: 1 },
+  A189:{ he: "זכירת מעשה עמלק", fr: "Se souvenir de ce qu’a fait Amalek", src: "Dt 25:17" },
+  A195:{ he: "צדקה", fr: "Donner la tsédaka", src: "Dt 15:8" },
+  A206:{ he: "ואהבת לרעך כמוך", fr: "Aimer son prochain comme soi-même", src: "Lv 19:18" },
+  A209:{ he: "והדרת פני זקן", fr: "Honorer les sages et les anciens", src: "Lv 19:32" },
+  A210:{ he: "כיבוד אב ואם", fr: "Honorer son père et sa mère", src: "Ex 20:12" },
+  A211:{ he: "מורא אב ואם", fr: "Révérer son père et sa mère", src: "Lv 19:3" },
+
+  L1:  { he: "לא יהיה לך אלהים אחרים", fr: "Ne pas croire en d’autres dieux", src: "Ex 20:3" },
+  L47: { he: "לא תתורו אחרי לבבכם ועיניכם", fr: "Ne pas suivre les désirs de son cœur et de ses yeux", src: "Nb 15:39" },
+  L59: { he: "לא תשכח", fr: "Ne pas oublier ce qu’a fait Amalek", src: "Dt 25:19" },
+  L63: { he: "לא תחללו את שם קדשי", fr: "Ne pas profaner le Nom de Dieu", src: "Lv 22:32" },
+  L172:{ he: "בהמה וחיה טמאה", fr: "Ne pas manger d’animal impur", src: "Lv 11:4" },
+  L173:{ he: "דג טמא", fr: "Ne pas manger de poisson impur", src: "Lv 11:11" },
+  L174:{ he: "עוף טמא", fr: "Ne pas manger d’oiseau impur", src: "Lv 11:13" },
+  L180:{ he: "נבלה", fr: "Ne pas manger de bête morte sans abattage rituel", src: "Dt 14:21" },
+  L181:{ he: "טרפה", fr: "Ne pas manger de bête atteinte d’une lésion mortelle", src: "Ex 22:30" },
+  L182:{ he: "אבר מן החי", fr: "Ne pas manger le membre d’un animal vivant", src: "Dt 12:23" },
+  L183:{ he: "גיד הנשה", fr: "Ne pas manger le nerf sciatique", src: "Gn 32:33" },
+  L184:{ he: "דם", fr: "Ne pas consommer de sang", src: "Lv 7:26" },
+  L185:{ he: "חלב", fr: "Ne pas manger les graisses interdites", src: "Lv 7:23" },
+  L186:{ he: "בישול בשר בחלב", fr: "Ne pas cuire la viande avec le lait", src: "Ex 23:19" },
+  L187:{ he: "אכילת בשר בחלב", fr: "Ne pas manger de viande cuite avec du lait", src: "Ex 34:26" },
+  L196:{ he: "אכילה ושתייה ביום הכיפורים", fr: "Ne pas manger ni boire à Yom Kippour", src: "Lv 23:29" },
+  L197:{ he: "אכילת חמץ בפסח", fr: "Ne pas manger de ‘hamets à Pessa‘h", src: "Ex 13:3" },
+  L198:{ he: "אכילת תערובת חמץ", fr: "Ne pas manger de mélange contenant du ‘hamets", src: "Ex 12:20" },
+  L199:{ he: "אכילת חמץ מחצות י״ד", fr: "Ne pas manger de ‘hamets à partir de midi du 14 Nissan", src: "Dt 16:3" },
+  L200:{ he: "בל יראה", fr: "Que le ‘hamets ne soit pas vu chez soi", src: "Ex 13:7" },
+  L201:{ he: "בל ימצא", fr: "Que le ‘hamets ne se trouve pas chez soi", src: "Ex 12:19" },
+  L251:{ he: "אונאת דברים", fr: "Ne pas blesser autrui par la parole", src: "Lv 25:17" },
+  L301:{ he: "לא תלך רכיל", fr: "Ne pas colporter de médisance", src: "Lv 19:16" },
+  L302:{ he: "לא תשנא את אחיך בלבבך", fr: "Ne pas haïr son frère dans son cœur", src: "Lv 19:17" },
+  L303:{ he: "ולא תשא עליו חטא", fr: "Ne pas humilier autrui", src: "Lv 19:17" },
+  L304:{ he: "לא תקום", fr: "Ne pas se venger", src: "Lv 19:18" },
+  L305:{ he: "לא תטור", fr: "Ne pas garder rancune", src: "Lv 19:18" },
+  L320:{ he: "מלאכה בשבת", fr: "Ne pas travailler le Chabbat", src: "Ex 20:10" },
+  L321:{ he: "יציאה חוץ לתחום", fr: "Ne pas sortir des limites (te‘houm) le Chabbat", src: "Ex 16:29" },
+  L323:{ he: "מלאכה בראשון של פסח", fr: "Ne pas travailler le 1er jour de Pessa‘h", src: "Lv 23:7" },
+  L324:{ he: "מלאכה בשביעי של פסח", fr: "Ne pas travailler le 7e jour de Pessa‘h", src: "Lv 23:8" },
+  L325:{ he: "מלאכה בשבועות", fr: "Ne pas travailler à Chavouot", src: "Lv 23:21" },
+  L326:{ he: "מלאכה בראש השנה", fr: "Ne pas travailler à Roch Hachana", src: "Lv 23:25" },
+  L327:{ he: "מלאכה בראשון של סוכות", fr: "Ne pas travailler le 1er jour de Souccot", src: "Lv 23:35" },
+  L328:{ he: "מלאכה בשמיני עצרת", fr: "Ne pas travailler à Chemini Atseret", src: "Lv 23:36" },
+  L329:{ he: "מלאכה ביום הכיפורים", fr: "Ne pas travailler à Yom Kippour", src: "Lv 23:28" },
+
+  R_NEROT_SH: { he: "הדלקת נרות שבת", fr: "Allumer les bougies de Chabbat avant le coucher du soleil", src: "Chabbat 25b" },
+  R_NEROT_YT: { he: "הדלקת נרות יום טוב", fr: "Allumer les bougies de Yom Tov", src: "Pessa‘him 102b" },
+  R_SEUDOT:   { he: "שלוש סעודות", fr: "Prendre les trois repas de Chabbat", src: "Chabbat 117b" },
+  R_HALLEL_HALF: { he: "חצי הלל", fr: "Réciter le Hallel partiel", src: "Taanit 28b", fx: 1 },
+  R_HALLEL_FULL: { he: "הלל שלם", fr: "Réciter le Hallel complet", src: "Arakhin 10a", fx: 1 },
+  R_YAALE:    { he: "יעלה ויבוא", fr: "Ajouter Yaalé veyavo dans la prière et le Birkat hamazon", src: "Chabbat 24a" },
+  R_NER_HANUKA: { he: "הדלקת נר חנוכה", fr: "Allumer les lumières de ‘Hanoucca", src: "Chabbat 21b" },
+  R_AL_HANISSIM: { he: "על הניסים", fr: "Ajouter Al hanissim dans la prière et le Birkat hamazon", src: "Chabbat 24a" },
+  R_MEGILLA:  { he: "מקרא מגילה", fr: "Écouter la Méguila le soir et le matin", src: "Méguila 4a" },
+  R_MISHLOACH:{ he: "משלוח מנות", fr: "Envoyer deux mets à un ami", src: "Esther 9:22" },
+  R_MATANOT:  { he: "מתנות לאביונים", fr: "Donner à deux pauvres", src: "Esther 9:22" },
+  R_SEUDA:    { he: "סעודת פורים", fr: "Prendre le festin de Pourim", src: "Esther 9:22" },
+  R_FAST:     { he: "תענית ציבור", fr: "Jeûner de l’aube à la tombée de la nuit", src: "Zacharie 8:19" },
+  R_TISHA:    { he: "תענית תשעה באב", fr: "Jeûner toute la journée et s’abstenir des cinq plaisirs", src: "Taanit 30a" },
+  R_ESTHER:   { he: "תענית אסתר", fr: "Jeûner de l’aube à la tombée de la nuit", src: "Esther 9:31" },
+  R_BEDIKA:   { he: "בדיקת חמץ", fr: "Rechercher le ‘hamets à la lumière d’une bougie", src: "Pessa‘him 2a" },
+  R_BECHOROT: { he: "תענית בכורות", fr: "Jeûne des premiers-nés (souvent levé par un siyoum)", src: "Soferim 21:3", fx: 1 },
+  R_SEDER:    { he: "ארבע כוסות, מרור, הלל", fr: "Boire les quatre coupes, manger le maror, dire le Hallel du Séder", src: "Pessa‘him 108b" },
+  R_YTS:      { he: "יום טוב שני של גלויות", fr: "Observer le second jour de fête de la diaspora", src: "Beitsa 4b" },
+  R_CHM:      { he: "חול המועד", fr: "Limiter les travaux pendant les jours intermédiaires", src: "‘Haguiga 18a" },
+  R_LULAV:    { he: "נטילת לולב", fr: "Prendre le loulav (jours 2 à 7, institution des Sages)", src: "Souccah 41a", fx: 1 },
+  R_ARAVA:    { he: "חבטת ערבה", fr: "Frapper la ‘arava (Hochaana Rabba)", src: "Souccah 44a" },
+  R_RH2:      { he: "יום שני של ראש השנה", fr: "Observer le 2e jour de Roch Hachana et entendre le chofar", src: "Beitsa 5a" },
+  R_SIMCHAT_TORAH: { he: "שמחת תורה", fr: "Achever et recommencer la lecture de la Torah (coutume)", src: "Méguila 31a" },
+  R_EREV_YK:  { he: "אכילה בערב יום הכיפורים", fr: "Manger la veille de Kippour", src: "Yoma 81b" },
+};
+const CONST_IDS = ["A1","A2","A3","A4","A5","A6","A8","A9","A10","A11","A12","A13","A14","A15","A19","A189","A195","A206","A209","A210","A211",
+  "L1","L47","L59","L63","L172","L173","L174","L180","L181","L182","L183","L184","L185","L186","L187","L251","L301","L302","L303","L304","L305"];
+for (const [id, m] of Object.entries(MZ)) { m.id = id; m.t = id[0] === "R" ? "R" : id[0]; m.num = m.t === "R" ? null : +id.slice(1); m.perm = CONST_IDS.includes(id); }
+
+/* ===================== Calendrier hébraïque ===================== */
+const MONTH_KEYS = { tishri: "TISHRI", heshvan: "HESHVAN", cheshvan: "HESHVAN", kislev: "KISLEV", tevet: "TEVET", shevat: "SHEVAT", "adar i": "ADAR1", "adar ii": "ADAR2", adar: "ADAR", nisan: "NISAN", iyar: "IYAR", sivan: "SIVAN", tamuz: "TAMUZ", tammuz: "TAMUZ", av: "AV", elul: "ELUL" };
+const HE_MONTH = { TISHRI: "תשרי", HESHVAN: "חשוון", KISLEV: "כסלו", TEVET: "טבת", SHEVAT: "שבט", ADAR1: "אדר א׳", ADAR2: "אדר ב׳", ADAR: "אדר", NISAN: "ניסן", IYAR: "אייר", SIVAN: "סיוון", TAMUZ: "תמוז", AV: "אב", ELUL: "אלול" };
+const FR_MONTH = { TISHRI: "Tichri", HESHVAN: "‘Hechvan", KISLEV: "Kislev", TEVET: "Tévet", SHEVAT: "Chevat", ADAR1: "Adar I", ADAR2: "Adar II", ADAR: "Adar", NISAN: "Nissan", IYAR: "Iyar", SIVAN: "Sivan", TAMUZ: "Tamouz", AV: "Av", ELUL: "Eloul" };
+const hebFmt = new Intl.DateTimeFormat("en-u-ca-hebrew", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+function hebDate(dt) {
+  const p = {}; for (const x of hebFmt.formatToParts(dt)) p[x.type] = x.value;
+  return { d: +p.day, m: MONTH_KEYS[p.month.toLowerCase()], y: +(p.year || p.relatedYear) };
+}
+function gem(n) {
+  const ones = ["", "א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט"], tens = ["", "י", "כ", "ל", "מ", "נ", "ס", "ע", "פ", "צ"], hund = ["", "ק", "ר", "ש", "ת"];
+  n %= 1000; let s = "";
+  while (n >= 400) { s += "ת"; n -= 400; }
+  if (n >= 100) { s += hund[Math.floor(n / 100)]; n %= 100; }
+  if (n === 15) s += "טו"; else if (n === 16) s += "טז"; else s += tens[Math.floor(n / 10)] + ones[n % 10];
+  return s.length > 1 ? s.slice(0, -1) + "״" + s.slice(-1) : s + "׳";
+}
+const hebStr = h => `${gem(h.d)} ${HE_MONTH[h.m]} ${gem(h.y)}`;
+const ord = n => n === 1 ? "1er" : n + "e";
+
+/* ===================== Règles du jour ===================== */
+function computeDay(x, o) {
+  const { d, m } = x.h, dow = x.dow, isr = o.israel, shabbat = dow === 6;
+  const adar = m === "ADAR" || m === "ADAR2";
+  const ev = [], items = [];
+  const add = (id, note, extra) => {
+    const ex = items.find(i => i.id === id);
+    if (ex) { if (note && !ex.note) ex.note = note; return; }
+    items.push(Object.assign({ id, note: note || "" }, extra || {}));
+  };
+  const E = (fr, he, cls) => ev.push({ fr, he, cls });
+  let noTefillin = shabbat;
+
+  // Chabbat
+  if (shabbat) {
+    E("Chabbat", "שבת", "shabbat");
+    add("A154"); add("A155", "Kiddouch à l’entrée, Havdala à la sortie : selon le Rambam, les deux relèvent de « Zakhor »");
+    add("L320"); add("L321"); add("R_SEUDOT");
+  }
+  if (dow === 5) add("R_NEROT_SH");
+
+  // Fêtes de la Torah
+  const key = m + "-" + d;
+  const YT = {
+    "NISAN-15": ["Pessa‘h · 1er jour", "פסח", ["A159", "A157", "A158", "A54"], ["L323"]],
+    "NISAN-21": ["Pessa‘h · 7e jour", "שביעי של פסח", ["A160", "A54"], ["L324"]],
+    "SIVAN-6":  ["Chavouot", "שבועות", ["A162", "A54"], ["L325"]],
+    "TISHRI-1": ["Roch Hachana · 1er jour", "ראש השנה", ["A163", "A170"], ["L326"]],
+    "TISHRI-10":["Yom Kippour", "יום הכיפורים", ["A164", "A165"], ["L196", "L329"]],
+    "TISHRI-15":["Souccot · 1er jour", "סוכות", ["A166", "A168", "A169", "A54"], ["L327"]],
+    "TISHRI-22":[isr ? "Chemini Atseret · Simhat Torah" : "Chemini Atseret", "שמיני עצרת", ["A167", "A54"], ["L328"]],
+  };
+  const NOTES = {
+    A157: "La nuit du Séder, au début du jour", A158: "Obligatoire la nuit du Séder (un kazaït), facultative ensuite",
+    A164: "Du coucher du soleil la veille jusqu’à la nuit ; inclut les cinq privations",
+    A168: "Repas et nuits dans la souccah", A169: "Le jour ; de la Torah partout le 1er jour",
+    L323: "Préparer la nourriture reste permis (okhel néfech)", L324: "Préparer la nourriture reste permis (okhel néfech)",
+    L325: "Préparer la nourriture reste permis (okhel néfech)", L326: "Préparer la nourriture reste permis (okhel néfech)",
+    L327: "Préparer la nourriture reste permis (okhel néfech)", L328: "Préparer la nourriture reste permis (okhel néfech)",
+  };
+  if (YT[key]) {
+    const [fr, he, as, ls] = YT[key];
+    E(fr, he, "yt"); noTefillin = true;
+    for (const id of as) {
+      if (shabbat && (id === "A170" || id === "A169")) add(id, id === "A170" ? "Le chofar n’est pas sonné quand Roch Hachana tombe un Chabbat (décret des Sages)" : "Le loulav n’est pas pris le Chabbat (décret des Sages)", { susp: true });
+      else add(id, NOTES[id]);
+    }
+    for (const id of ls) add(id, NOTES[id]);
+    if (key === "NISAN-15") add("R_SEDER");
+    if (key === "TISHRI-22" && isr) add("R_SIMCHAT_TORAH");
+  }
+  // Veilles de fête : bougies
+  if (["NISAN-14", "NISAN-20", "SIVAN-5", "ELUL-29", "TISHRI-9", "TISHRI-14", "TISHRI-21"].includes(key) && dow !== 6) add("R_NEROT_YT");
+
+  // Diaspora : second jour de fête
+  const yts = { "NISAN-16": "Pessa‘h · 2e jour", "NISAN-22": "Pessa‘h · 8e jour", "SIVAN-7": "Chavouot · 2e jour", "TISHRI-16": "Souccot · 2e jour", "TISHRI-23": "Simhat Torah" };
+  if (!isr && yts[key]) {
+    E(yts[key], key === "TISHRI-23" ? "שמחת תורה" : "יום טוב שני", "yt"); noTefillin = true;
+    add("R_YTS", "Repos et interdits comme le 1er jour" + (key === "NISAN-16" ? " ; second Séder ce soir-là (début du jour)" : "") + (key === "NISAN-22" ? " ; le ‘hamets reste interdit" : ""));
+    if (key === "NISAN-16") add("R_SEDER", "Second Séder");
+    if (key === "TISHRI-23") add("R_SIMCHAT_TORAH");
+    if (key === "NISAN-22" || key === "SIVAN-7" || key === "TISHRI-23") add("A54", null, { rab: true });
+  }
+
+  // Roch Hachana 2e jour (partout)
+  if (key === "TISHRI-2") { E("Roch Hachana · 2e jour", "ראש השנה", "yt"); noTefillin = true; add("R_RH2"); }
+
+  // Pessa‘h
+  if (m === "NISAN") {
+    if ((d === 14 && !shabbat) || (d === 13 && dow === 5)) add("R_BEDIKA", "La nuit, au début du jour" + (d === 13 ? " (avancée car le 14 Nissan tombe un Chabbat)" : ""));
+    if ((d === 14 && !shabbat) || (d === 12 && dow === 4)) add("R_BECHOROT", d === 12 ? "Avancé au jeudi car le 14 Nissan tombe un Chabbat" : "");
+    if (d === 14) {
+      E("Veille de Pessa‘h", "ערב פסח", "rabb");
+      add("A156", shabbat ? "Cette année, le ‘hamets est brûlé vendredi ; le reste est annulé avant la fin de la 5e heure" : "Brûler et annuler le ‘hamets avant la fin de la 5e heure du jour");
+      add("L199", "Dès midi");
+    }
+    if (d >= 15 && d <= 21) { ["L197", "L198", "L200", "L201"].forEach(id => add(id)); add("A54"); }
+    const chmStart = isr ? 16 : 17;
+    if (d >= chmStart && d <= 20) { E("‘Hol HaMoed Pessa‘h", "חול המועד פסח", "rabb"); add("R_CHM"); }
+    if (d >= 15 && d <= (isr ? 21 : 22)) add("R_YAALE");
+    if (d === 15 || (d === 16 && !isr)) add("R_HALLEL_FULL", "Hallel complet le soir du Séder et le matin");
+    else if (d >= 16 && d <= (isr ? 21 : 22)) add("R_HALLEL_HALF");
+  }
+  // Omer
+  if (x.omer) {
+    add("A161", `${ord(x.omer)} jour du Omer, compté la nuit au début du jour` + (x.omer >= 7 ? ` (${Math.floor(x.omer / 7)} semaine${x.omer >= 14 ? "s" : ""}${x.omer % 7 ? " et " + (x.omer % 7) + " jour" + (x.omer % 7 > 1 ? "s" : "") : ""})` : "") + ". De nombreux décisionnaires le tiennent pour dérabbanan aujourd’hui");
+    if (x.omer === 33) E("Lag BaOmer", "ל״ג בעומר", "");
+  }
+  // Chavouot
+  if (key === "SIVAN-6" || (!isr && key === "SIVAN-7")) { add("R_HALLEL_FULL"); add("R_YAALE"); }
+
+  // Tichri
+  if (m === "TISHRI") {
+    if (d === 3 && !shabbat || d === 4 && dow === 0) { E("Jeûne de Guedalia", "צום גדליה", "fast"); add("R_FAST"); }
+    if (d === 9) { E("Veille de Yom Kippour", "ערב יום הכיפורים", "rabb"); add("R_EREV_YK"); }
+    if (d >= 15 && d <= 21) { add("A168", NOTES.A168); add("A54"); }
+    if (d >= 15 && d <= 22) add("A54");
+    if (d >= 16 && d <= 21 && !shabbat) add("R_LULAV");
+    if (d >= (isr ? 16 : 17) && d <= 21) { E(d === 21 ? "Hochaana Rabba" : "‘Hol HaMoed Souccot", d === 21 ? "הושענא רבה" : "חול המועד סוכות", "rabb"); add("R_CHM"); }
+    if (d >= 15 && d <= (isr ? 22 : 23)) { add("R_HALLEL_FULL"); add("R_YAALE"); }
+    if (d === 21) add("R_ARAVA");
+  }
+  // Roch ‘Hodech
+  if ((d === 1 && m !== "TISHRI") || d === 30) {
+    E("Roch ‘Hodech", "ראש חודש", "rabb"); add("R_YAALE");
+    if (!x.chanukah) add("R_HALLEL_HALF");
+  }
+  // ‘Hanoucca
+  if (x.chanukah) {
+    E(`‘Hanoucca · ${ord(x.chanukah)} jour`, "חנוכה", "rabb");
+    add("R_NER_HANUKA", `${x.chanukah} lumière${x.chanukah > 1 ? "s" : ""}, allumées la nuit au début du jour` + (dow === 5 ? ", avant les bougies de Chabbat" : dow === 6 ? ", après la Havdala" : ""));
+    add("R_HALLEL_FULL"); add("R_AL_HANISSIM");
+  }
+  // Jeûnes
+  if (m === "TEVET" && d === 10) { E("Jeûne du 10 Tévet", "עשרה בטבת", "fast"); add("R_FAST"); }
+  if (m === "TAMUZ" && (d === 17 && !shabbat || d === 18 && dow === 0)) { E("Jeûne du 17 Tamouz", "שבעה עשר בתמוז", "fast"); add("R_FAST"); }
+  if (m === "AV" && (d === 9 && !shabbat || d === 10 && dow === 0)) { E("Tisha BeAv", "תשעה באב", "fast"); add("R_TISHA", "Les tefillin se mettent l’après-midi"); }
+  if (m === "SHEVAT" && d === 15) E("Tou BiChvat", "ט״ו בשבט", "");
+  if (m === "AV" && d === 15) E("Tou BeAv", "ט״ו באב", "");
+  // Pourim
+  if (adar) {
+    if (d === 13 && !shabbat || d === 11 && dow === 4) { E("Jeûne d’Esther", "תענית אסתר", "fast"); add("R_ESTHER", d === 11 ? "Avancé au jeudi car le 13 Adar tombe un Chabbat" : ""); }
+    if (shabbat && d >= 8 && d <= 13) { E("Chabbat Zakhor", "שבת זכור", "shabbat"); add("A189", "Lecture de la paracha Zakhor, d’ordre toranique selon de nombreux décisionnaires"); }
+    if (d === 14) { E("Pourim", "פורים", "rabb"); ["R_MEGILLA", "R_MISHLOACH", "R_MATANOT", "R_SEUDA", "R_AL_HANISSIM"].forEach(id => add(id, "Partout sauf dans les villes entourées de murailles depuis Josué")); }
+    if (d === 15) { E("Chouchan Pourim", "שושן פורים", "rabb"); add("R_MEGILLA", shabbat ? "À Jérusalem, Pourim « triple » : Méguila le vendredi, festin le dimanche" : "À Jérusalem et dans les villes entourées de murailles"); }
+  }
+  if (m === "ADAR1" && d === 14) E("Pourim Katan", "פורים קטן", "");
+
+  // Mitsvot permanentes
+  for (const id of CONST_IDS) {
+    if (noTefillin && (id === "A12" || id === "A13")) continue;
+    add(id, null, { perm: true });
+  }
+  // Profil
+  let list = items;
+  if (o.women) list = list.filter(i => !MZ[i.id].fx);
+  // Une mitsva propre au jour qui est aussi permanente (ex. A189 le Chabbat Zakhor) n’est pas marquée permanente
+  return { ev, items: list };
+}
+
+function tally(items, withPerm) {
+  const c = { A: 0, L: 0, R: 0, sA: 0, sL: 0 };
+  for (const i of items) {
+    if (i.susp) continue;
+    if (i.perm && !withPerm) continue;
+    const t = i.rab ? "R" : MZ[i.id].t;
+    c[t]++;
+    if (!i.perm && t !== "R") c["s" + t]++;
+  }
+  return c;
+}
+
+function buildYear(Y, o) {
+  const arr = [];
+  for (let t = Date.UTC(Y - 1, 10, 15); t <= Date.UTC(Y, 11, 31); t += 864e5) {
+    const dt = new Date(t + 12 * 36e5);
+    arr.push({ t, dt, dow: dt.getUTCDay(), h: hebDate(dt) });
+  }
+  arr.forEach((x, i) => {
+    if (x.h.m === "KISLEV" && x.h.d === 25) for (let k = 0; k < 8 && i + k < arr.length; k++) arr[i + k].chanukah = k + 1;
+    if (x.h.m === "NISAN" && x.h.d === 16) for (let k = 0; k < 49 && i + k < arr.length; k++) arr[i + k].omer = k + 1;
+  });
+  const days = arr.filter(x => x.dt.getUTCFullYear() === Y);
+  for (const x of days) x.r = computeDay(x, o);
+  return days;
+}
+
+/* ===================== Interface ===================== */
+if (typeof document !== "undefined") (function () {
+  const $ = s => document.querySelector(s);
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem("louah." + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem("louah." + k, JSON.stringify(v)); } catch (e) {} },
+  };
+  const now = new Date();
+  const todayT = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const S = {
+    year: now.getFullYear(), sel: todayT, tab: "cal", filter: "all", q: "",
+    o: { israel: store.get("israel", false), women: store.get("women", false) },
+    perm: store.get("perm", true),
+  };
+  let days = [], byT = new Map();
+  const MONTHS_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+  const DOW_HE = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
+  const dateFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const shortFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  function rebuild() {
+    days = buildYear(S.year, S.o);
+    byT = new Map(days.map(x => [x.t, x]));
+    if (!byT.has(S.sel)) S.sel = (S.year === now.getFullYear()) ? todayT : Date.UTC(S.year, 0, 1);
+    render();
+  }
+
+  function level(c) { const n = c.sA + c.sL; return n === 0 ? 0 : n <= 2 ? 1 : n <= 4 ? 2 : n <= 6 ? 3 : 4; }
+
+  function renderTotals() {
+    let A = 0, L = 0, R = 0, special = 0;
+    for (const x of days) { const c = tally(x.r.items, S.perm); A += c.A; L += c.L; R += c.R; if (c.sA + c.sL) special++; }
+    const fmt = n => n.toLocaleString("fr-FR");
+    $("#totals").innerHTML = `
+      <div class="total a"><span class="k">Asé accomplies sur l’année</span><span class="v">${fmt(A)}</span></div>
+      <div class="total l"><span class="k">Lo ta’asé à observer</span><span class="v">${fmt(L)}</span></div>
+      <div class="total r"><span class="k">Mitsvot dérabbanan</span><span class="v">${fmt(R)}</span></div>
+      <div class="total"><span class="k">Jours avec mitsvot propres</span><span class="v">${special} <small style="font-size:.9rem;color:var(--muted)">/ ${days.length}</small></span></div>`;
+  }
+
+  function renderCal() {
+    let html = "";
+    for (let mo = 0; mo < 12; mo++) {
+      const md = days.filter(x => x.dt.getUTCMonth() === mo);
+      const hm = [...new Set(md.map(x => FR_MONTH[x.h.m]))].join(" – ");
+      html += `<div class="month"><h3><span>${MONTHS_FR[mo]}</span><small>${esc(hm)}</small></h3><div class="grid7">`;
+      html += DOW_HE.map(dw => `<div class="dow">${dw}</div>`).join("");
+      for (let i = 0; i < md[0].dow; i++) html += "<div></div>";
+      for (const x of md) {
+        const c = tally(x.r.items, false);
+        const cls = ["cell", "l" + level(c)];
+        if (x.r.items.some(i => (i.rab || MZ[i.id].t === "R") && i.id !== "R_NEROT_SH" && i.id !== "R_SEUDOT")) cls.push("rb");
+        if (x.t === todayT) cls.push("today");
+        if (x.t === S.sel) cls.push("sel");
+        const label = `${x.dt.getUTCDate()} ${MONTHS_FR[mo]}, ${x.h.d} ${FR_MONTH[x.h.m]}${x.r.ev.length ? " — " + x.r.ev.map(e => e.fr).join(", ") : ""}`;
+        html += `<button class="${cls.join(" ")}" data-t="${x.t}" aria-label="${esc(label)}" title="${esc(label)}"><span class="g">${x.dt.getUTCDate()}</span><span class="h">${gem(x.h.d)}</span></button>`;
+      }
+      html += "</div></div>";
+    }
+    $("#months").innerHTML = html;
+  }
+
+  function li(i) {
+    const m = MZ[i.id], t = i.rab ? "R" : m.t;
+    const n = t === "R" ? (m.t === "R" ? "דרבנן" : "דרבנן") : (m.t === "A" ? "ע׳ " : "ל״ת ") + m.num;
+    const note = [i.note, i.rab ? "Ce jour supplémentaire est d’institution rabbinique" : "", i.perm ? m.note : ""].filter(Boolean).join(" · ");
+    return `<li class="${i.susp ? "susp" : ""}"><span class="n he">${n}</span><div class="t"><div class="row1"><span class="he">${esc(m.he)}</span><span class="src">${esc(m.src)}</span></div><span class="fr">${esc(m.fr)}</span>${note ? `<span class="note">${esc(note)}</span>` : ""}</div></li>`;
+  }
+
+  function sect(type, title, heTitle, items) {
+    const spec = items.filter(i => !i.perm), perm = items.filter(i => i.perm);
+    let h = `<div class="sect ${type.toLowerCase()}"><h4><span>${title}</span><span class="he">${heTitle}</span></h4>`;
+    h += spec.length ? `<ul class="mz">${spec.map(li).join("")}</ul>` : `<p class="empty">Aucune mitsva propre à ce jour.</p>`;
+    if (perm.length && S.perm) h += `<details class="perm"><summary>Mitsvot permanentes (${perm.length})</summary><ul class="mz">${perm.map(li).join("")}</ul></details>`;
+    return h + "</div>";
+  }
+
+  function renderDay() {
+    const x = byT.get(S.sel); if (!x) return;
+    const c = tally(x.r.items, S.perm);
+    const typeOf = i => i.rab ? "R" : MZ[i.id].t;
+    const A = x.r.items.filter(i => typeOf(i) === "A"), L = x.r.items.filter(i => typeOf(i) === "L"), R = x.r.items.filter(i => typeOf(i) === "R");
+    $("#day").innerHTML = `
+      <div class="dhead">
+        <div>
+          <h2>${esc(dateFmt.format(x.dt))}</h2>
+          <div class="hdate he">${hebStr(x.h)}</div>
+          <div class="hdate-fr">${x.h.d} ${FR_MONTH[x.h.m]} ${x.h.y}</div>
+        </div>
+        <div class="dnav"><button id="dPrev" aria-label="Jour précédent">‹</button><button id="dNext" aria-label="Jour suivant">›</button></div>
+      </div>
+      ${x.r.ev.length ? `<div class="chips">${x.r.ev.map(e => `<span class="chip ${e.cls}">${esc(e.fr)} <span class="he">${e.he}</span></span>`).join("")}</div>` : ""}
+      <div class="counts">
+        <div class="count a"><b>${c.A}</b><span>מצוות עשה</span><small>${c.sA} propre${c.sA > 1 ? "s" : ""} au jour</small></div>
+        <div class="count l"><b>${c.L}</b><span>לא תעשה</span><small>${c.sL} propre${c.sL > 1 ? "s" : ""} au jour</small></div>
+        <div class="count r"><b>${c.R}</b><span>דרבנן</span><small>de nos Sages</small></div>
+      </div>
+      ${sect("A", "Commandements positifs", "מצוות עשה", A)}
+      ${sect("L", "Interdits", "מצוות לא תעשה", L)}
+      ${R.length ? sect("R", "Mitsvot de nos Sages", "מצוות דרבנן", R) : ""}`;
+    $("#dPrev").onclick = () => step(-1);
+    $("#dNext").onclick = () => step(1);
+  }
+
+  function step(n) {
+    const t = S.sel + n * 864e5, y = new Date(t).getUTCFullYear();
+    S.sel = t;
+    if (y !== S.year) { S.year = y; rebuild(); } else { renderCal(); renderDay(); }
+  }
+
+  function renderRepo() {
+    const cnt = {};
+    for (const x of days) for (const i of x.r.items) {
+      if (i.susp || (i.perm && !S.perm)) continue;
+      cnt[i.id] = (cnt[i.id] || 0) + 1;
+    }
+    const q = S.q.trim().toLowerCase();
+    const rows = Object.values(MZ).filter(m => (S.filter === "all" || m.t === S.filter) && (!q || (m.he + " " + m.fr + " " + m.src + " " + (m.num || "")).toLowerCase().includes(q)));
+    rows.sort((a, b) => "ALR".indexOf(a.t) - "ALR".indexOf(b.t) || (a.num || 0) - (b.num || 0));
+    const max = days.length;
+    $("#repoBody").innerHTML = rows.map(m => {
+      const n = cnt[m.id] || 0;
+      const tg = m.t === "A" ? '<span class="tag a">Asé</span>' : m.t === "L" ? '<span class="tag l">Lo ta’asé</span>' : '<span class="tag r">Dérabbanan</span>';
+      return `<tr><td>${tg}${m.perm ? ' <span class="tag p">permanente</span>' : ""}${m.fx ? ' <span class="tag p">femmes dispensées</span>' : ""}</td>
+        <td class="num">${m.num || "–"}</td>
+        <td><div class="he">${esc(m.he)}</div><div>${esc(m.fr)}</div></td>
+        <td style="white-space:nowrap">${esc(m.src)}</td>
+        <td class="num">${n}<div class="bar"><i style="width:${(100 * n / max).toFixed(1)}%"></i></div></td></tr>`;
+    }).join("") || `<tr><td colspan="5" class="empty">Aucune mitsva ne correspond à « ${esc(S.q)} ».</td></tr>`;
+    document.querySelectorAll(".yy").forEach(e => e.textContent = S.year);
+  }
+
+  function renderEv() {
+    const rows = days.filter(x => x.r.ev.some(e => e.cls !== "shabbat" || e.fr !== "Chabbat"));
+    $("#evList").innerHTML = rows.map(x => {
+      const c = tally(x.r.items, false);
+      const evs = x.r.ev.filter(e => e.fr !== "Chabbat");
+      return `<button class="evrow" data-t="${x.t}"><span class="gd">${esc(shortFmt.format(x.dt))}</span><span class="hd he">${gem(x.h.d)} ${HE_MONTH[x.h.m]}</span>
+        <span>${evs.map(e => `<span class="chip ${e.cls}">${esc(e.fr)}</span>`).join(" ")}</span>
+        <span class="cnt">${c.sA} asé · ${c.sL} lo ta’asé · ${c.R} dérab.</span></button>`;
+    }).join("");
+  }
+
+  function render() {
+    $("#yLabel").textContent = S.year;
+    $("#oIsr").setAttribute("aria-pressed", S.o.israel); $("#oDias").setAttribute("aria-pressed", !S.o.israel);
+    $("#oWomen").setAttribute("aria-pressed", S.o.women); $("#oMen").setAttribute("aria-pressed", !S.o.women);
+    $("#oPerm").checked = S.perm;
+    for (const [tab, view, btn] of [["cal", "#viewCal", "#tabCal"], ["repo", "#viewRepo", "#tabRepo"], ["ev", "#viewEv", "#tabEv"]]) {
+      $(view).hidden = S.tab !== tab; $(btn).setAttribute("aria-selected", S.tab === tab);
+    }
+    renderTotals();
+    if (S.tab === "cal") { renderCal(); renderDay(); }
+    if (S.tab === "repo") renderRepo();
+    if (S.tab === "ev") renderEv();
+  }
+
+  $("#yPrev").onclick = () => { S.year--; rebuild(); };
+  $("#yNext").onclick = () => { S.year++; rebuild(); };
+  $("#oIsr").onclick = () => { S.o.israel = true; store.set("israel", true); rebuild(); };
+  $("#oDias").onclick = () => { S.o.israel = false; store.set("israel", false); rebuild(); };
+  $("#oMen").onclick = () => { S.o.women = false; store.set("women", false); rebuild(); };
+  $("#oWomen").onclick = () => { S.o.women = true; store.set("women", true); rebuild(); };
+  $("#oPerm").onchange = e => { S.perm = e.target.checked; store.set("perm", S.perm); render(); };
+  $("#goToday").onclick = () => { S.tab = "cal"; S.sel = todayT; if (S.year !== now.getFullYear()) { S.year = now.getFullYear(); rebuild(); } else render(); };
+  $("#tabCal").onclick = () => { S.tab = "cal"; render(); };
+  $("#tabRepo").onclick = () => { S.tab = "repo"; render(); };
+  $("#tabEv").onclick = () => { S.tab = "ev"; render(); };
+  $("#months").addEventListener("click", e => { const b = e.target.closest(".cell"); if (!b) return; S.sel = +b.dataset.t; renderCal(); renderDay(); if (window.innerWidth <= 920) $("#day").scrollIntoView({ behavior: "smooth", block: "start" }); });
+  $("#evList").addEventListener("click", e => { const b = e.target.closest(".evrow"); if (!b) return; S.sel = +b.dataset.t; S.tab = "cal"; render(); });
+  $("#q").addEventListener("input", e => { S.q = e.target.value; renderRepo(); });
+  document.querySelectorAll("#viewRepo .seg button").forEach(b => b.onclick = () => {
+    S.filter = b.dataset.f; document.querySelectorAll("#viewRepo .seg button").forEach(x => x.setAttribute("aria-pressed", x === b)); renderRepo();
+  });
+  document.addEventListener("keydown", e => {
+    if (S.tab !== "cal" || e.target.matches("input")) return;
+    if (e.key === "ArrowLeft") step(-1); else if (e.key === "ArrowRight") step(1);
+  });
+  rebuild();
+})();
+</script>
