@@ -300,6 +300,20 @@ details.chin summary { cursor: pointer; list-style: none; display: flex; justify
 details.chin summary::-webkit-details-marker { display: none; }
 .chlab { margin: 10px 0 2px; font-size: 0.75rem; font-weight: 700; color: var(--muted); }
 .chlink { display: inline-block; margin-top: 8px; font-size: 0.78rem; color: var(--muted); }
+
+.track { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 0.9rem; }
+.track .k { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; }
+.track b { font-family: var(--display); font-size: 1.3rem; color: var(--ase); font-variant-numeric: tabular-nums; }
+.track small { color: var(--muted); }
+ul.mz li { position: relative; }
+ul.mz li.hasck .mzb { padding-right: 48px; }
+.ck { position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 1; }
+.ck input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.ck span { width: 24px; height: 24px; border: 2px solid var(--line); border-radius: 6px; background: var(--surface); display: block; position: relative; }
+.ck input:checked + span { background: var(--ase); border-color: var(--ase); }
+.ck input:checked + span::after { content: ""; position: absolute; left: 7px; top: 2px; width: 6px; height: 12px; border: solid var(--tekhelet-ink); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.ck input:focus-visible + span { outline: 2px solid var(--tekhelet); outline-offset: 2px; }
+.flash { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 14px; border-radius: 8px; font-size: 0.9rem; z-index: 20; max-width: calc(100% - 32px); }
 footer { color: var(--muted); font-size: 0.82rem; max-width: 80ch; display: flex; flex-direction: column; gap: 6px; }
 footer p { margin: 0; }
 @media (prefers-reduced-motion: no-preference) { .cell { transition: filter .12s; } }
@@ -389,6 +403,7 @@ footer p { margin: 0; }
 
   <section class="totals" id="totals" aria-label="Totaux de l’année"></section>
 
+  <div id="flash" class="flash" role="status" hidden></div>
   <footer>
     <p>Le jour hébraïque commence la veille au coucher du soleil. Une mitsva « de la nuit » (Séder, bougie de ‘Hanoucca, compte du Omer) s’accomplit donc le soir qui précède la date civile affichée.</p>
     <p>Liste et numérotation du Rambam (introduction du Michné Torah, texte hébreu de Wikisource via Sefaria). Le classement pratique suit le Choul‘han Aroukh et les décisionnaires séfarades, ou le Rema et la Michna Beroura pour les Ashkénazes, selon le réglage choisi. Cette application ne remplace pas un rav : pour toute question pratique, consultez-le.</p>
@@ -1588,11 +1603,52 @@ if (typeof document !== "undefined") (function () {
     if (window.innerWidth <= 920) $("#day").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+
+  /* ---- Mitsvot cochées : espace privé de chaque personne (db), sinon stockage de l’appareil ---- */
+  const Track = {
+    db: null, uid: null, cache: new Map(), ready: false,
+    key: t => new Date(t).toISOString().slice(0, 10),
+    async init() {
+      try {
+        const use = window.claude && window.claude.use;
+        if (!use) return;
+        const [user, db] = await Promise.all([window.claude.use("user"), window.claude.use("db")]);
+        if (!user || !db) return;
+        const uid = await user.id();
+        if (!uid) return;
+        this.db = db; this.uid = uid; this.cache.clear();
+        renderDay();
+      } catch (e) { /* on reste sur le stockage local */ }
+    },
+    ref(k) { return this.db.collection("data/users/" + this.uid).doc("done-" + k); },
+    async load(t) {
+      const k = this.key(t);
+      if (this.cache.has(k)) return this.cache.get(k);
+      let ids = [];
+      if (this.db) {
+        try { const snap = await this.ref(k).get(); ids = snap.exists ? (snap.data().ids || []) : []; } catch (e) { ids = []; }
+      } else {
+        try { ids = JSON.parse(localStorage.getItem("louah.done." + k) || "[]"); } catch (e) { ids = []; }
+      }
+      const set = new Set(ids); this.cache.set(k, set); return set;
+    },
+    async toggle(t, id, on) {
+      const k = this.key(t), set = await this.load(t);
+      on ? set.add(id) : set.delete(id);
+      if (this.db) { try { await this.ref(k).set({ ids: [...set], updated: Date.now() }); } catch (e) { flash("La coche n’a pas pu être enregistrée. Vérifiez votre connexion."); } }
+      else { try { localStorage.setItem("louah.done." + k, JSON.stringify([...set])); } catch (e) {} }
+      return set;
+    },
+  };
+  function flash(msg) { const el = $("#flash"); if (!el) return; el.textContent = msg; el.hidden = false; clearTimeout(flash.t); flash.t = setTimeout(() => (el.hidden = true), 4000); }
+  let CHECKABLE = new Set();
+
   function li(i) {
     const m = MZ[i.id], t = i.rab ? "R" : m.t;
     const n = m.t === "R" ? "דרבנן" : (m.t === "A" ? "ע׳ " : "ל״ת ") + m.num;
     const note = [i.note, i.rab ? (i.rabWhy || "Ce jour supplémentaire est d’institution rabbinique") : "", STATIC_NOTES[i.id] && !i.note ? STATIC_NOTES[i.id] : "", popLabel(m.pop) ? "Concerne : " + popLabel(m.pop) : ""].filter(Boolean).join(" · ");
-    return `<li class="${i.susp ? "susp" : ""} t${t}" data-id="${i.id}"><button class="mzb" aria-expanded="false"><span class="n he">${n}</span><span class="t"><span class="row1"><span class="fr">${esc(m.fr)}</span><span class="src">${esc(m.src)}</span></span><span class="he hq">${esc(m.he)}</span>${note ? `<span class="note">${esc(note)}</span>` : ""}${SA_REFS[i.id] && SA_REFS[i.id].sa.length ? `<span class="sa-hint">Choul‘han Aroukh <span class="he">שו״ע</span> ›</span>` : (MT_REFS[i.id] ? `<span class="sa-hint">Source : Michné Torah <span class="he">רמב״ם</span> ›</span>` : `<span class="sa-hint none">Source talmudique ›</span>`)}</span></button><div class="sa" hidden></div></li>`;
+    const ck = CHECKABLE.has(i.id) && !i.susp ? `<label class="ck" title="Accomplie"><input type="checkbox" data-ck="${i.id}" aria-label="Marquer comme accomplie : ${esc(m.fr)}"><span></span></label>` : "";
+    return `<li class="${i.susp ? "susp" : ""} t${t}${ck ? " hasck" : ""}" data-id="${i.id}">${ck}<button class="mzb" aria-expanded="false"><span class="n he">${n}</span><span class="t"><span class="row1"><span class="fr">${esc(m.fr)}</span><span class="src">${esc(m.src)}</span></span><span class="he hq">${esc(m.he)}</span>${note ? `<span class="note">${esc(note)}</span>` : ""}${SA_REFS[i.id] && SA_REFS[i.id].sa.length ? `<span class="sa-hint">Choul‘han Aroukh <span class="he">שו״ע</span> ›</span>` : (MT_REFS[i.id] ? `<span class="sa-hint">Source : Michné Torah <span class="he">רמב״ם</span> ›</span>` : `<span class="sa-hint none">Source talmudique ›</span>`)}</span></button><div class="sa" hidden></div></li>`;
   }
   const ul = list => list.length ? `<ul class="mz">${list.map(li).join("")}</ul>` : `<p class="empty">Aucune.</p>`;
   const split = list => ({ A: list.filter(i => MZ[i.id].t === "A"), L: list.filter(i => MZ[i.id].t === "L") });
@@ -1707,6 +1763,7 @@ if (typeof document !== "undefined") (function () {
     const B = buckets(x, S.o), c = x.c;
     const spec = B.spec, sA = spec.filter(i => !i.rab && MZ[i.id].t === "A"), sL = spec.filter(i => !i.rab && MZ[i.id].t === "L"), sR = spec.filter(i => i.rab || MZ[i.id].t === "R");
     const nA = sA.filter(i => !i.susp).length, nL = sL.filter(i => !i.susp).length;
+    CHECKABLE = new Set([...spec.filter(i => !i.susp && !i.rab && MZ[i.id].t !== "L"), ...sR, ...B.perm, ...B.cond, ...B.land].filter(i => MZ[i.id].t !== "L").map(i => i.id));
 
     const row = (k, label, a, l, body, open, sub) =>
       `<details class="brow b-${k}" data-k="${k}"${open ? " open" : ""}><summary><span class="lab">${label}${sub ? `<small>${sub}</small>` : ""}</span><span class="na">${a}</span><span class="nl">${l}</span></summary><div class="bbody">${body}</div></details>`;
@@ -1748,6 +1805,7 @@ if (typeof document !== "undefined") (function () {
         <div class="count l"><b>${c.L}</b><span>לא תעשה</span><small>applicables sur 365</small></div>
         <div class="count r"><b>${c.R}</b><span>דרבנן</span><small>propres au jour</small></div>
       </div>
+      <div class="track" id="track"><span class="k">Mitsvot cochées ce jour</span><b id="trackN">0</b><small id="trackWhere"></small></div>
       <div class="bk2">
         <div class="bhead"><span class="lab">Répartition des 613 · touchez une ligne</span><span class="na">Asé</span><span class="nl">Lo ta’asé</span></div>
         ${rows}
@@ -1755,11 +1813,24 @@ if (typeof document !== "undefined") (function () {
       </div>`;
     $("#dPrev").onclick = () => step(-1);
     $("#dNext").onclick = () => step(1);
+    const tSel = S.sel;
+    Track.load(tSel).then(set => {
+      if (S.sel !== tSel) return;
+      $("#day").querySelectorAll("input[data-ck]").forEach(cb => { cb.checked = set.has(cb.dataset.ck); });
+      $("#trackN").textContent = [...set].filter(id => CHECKABLE.has(id)).length;
+      $("#trackWhere").textContent = Track.db ? "enregistrées dans votre espace personnel" : "enregistrées sur cet appareil";
+    });
     $("#day").querySelectorAll("details.brow").forEach(d => d.addEventListener("toggle", () => {
       if (d.open) { const sm = d.querySelector("summary"); requestAnimationFrame(() => requestAnimationFrame(() => sm.scrollIntoView({ block: "start" }))); }
     }));
   }
 
+  document.addEventListener("change", async e => {
+    const cb = e.target.closest("input[data-ck]"); if (!cb) return;
+    const set = await Track.toggle(S.sel, cb.dataset.ck, cb.checked);
+    document.querySelectorAll(`input[data-ck="${cb.dataset.ck}"]`).forEach(x => (x.checked = cb.checked));
+    const n = $("#trackN"); if (n) n.textContent = [...set].filter(id => CHECKABLE.has(id)).length;
+  });
   // Ouvrir une mitsva : références du Choul‘han Aroukh
   document.addEventListener("click", e => {
     const b = e.target.closest(".mzb"); if (!b) return;
@@ -1859,5 +1930,6 @@ if (typeof document !== "undefined") (function () {
     if (e.key === "ArrowLeft") step(-1); else if (e.key === "ArrowRight") step(1);
   });
   rebuild();
+  Track.init();
 })();
 </script>
