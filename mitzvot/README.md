@@ -4,7 +4,9 @@ Calendrier des 613 mitsvot (Rambam) et des mitsvot de nos Sages pour chaque jour
 
 - `index.html` : l'application (calcul et interface), écrite pour être publiée telle quelle comme page Claude.
 - `textes/` : les textes du Choul'han Aroukh, du Michné Torah et du Séfer Ha'Hinoukh avec leur traduction, découpés en petits fichiers chargés à la demande (`sNN.json` : références et Rambam ; `hNN.json` : Hinoukh). L'index `TX_META` dans `index.html` indique le fichier de chaque mitsva.
-- `tests/verifier.js` : vérifie que, chaque jour et pour chaque réglage, les 613 mitsvot sont toutes classées (`node mitzvot/tests/verifier.js`).
+- `tests/verifier.js` : vérifie que, chaque jour et pour chaque réglage, les 613 mitsvot sont toutes classées, et que chaque fichier de textes existe avec la bonne empreinte.
+- `tests/hebcal.mjs` : compare le calcul à la bibliothèque de référence Hebcal : dates hébraïques (1950-2100), fêtes, jeûnes, Roch ‘Hodech, ‘Hol HaMoed, Pourim, paracha et Chabbatot particuliers (2024-2035, diaspora et Israël), horaires de toutes les villes (à 5 secondes près). Lancer `cd mitzvot/tests && npm ci && npm test`.
+- `outils/empreintes_textes.py` : à relancer après toute modification d'un texte ; met l'empreinte du contenu dans le nom des fichiers de `textes/` et met à jour l'index de la page.
 - `pwa/` : la version installable et utilisable hors connexion (manifest, service worker, icônes) et `build.sh`, qui l'assemble dans `_site/`.
 - `.github/workflows/mitzvot-pages.yml` : publie la version installable sur GitHub Pages.
 

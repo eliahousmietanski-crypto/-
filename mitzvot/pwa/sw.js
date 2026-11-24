@@ -1,7 +1,9 @@
 // Service worker de Louah HaMitsvot : l’application s’ouvre tout de suite depuis le téléphone, même hors connexion.
-// build.sh remplace les trois valeurs ci-dessous à chaque construction.
-const SHELL = "louah-app-__VERSION__";        // page, manifeste, icônes : changent à chaque version
-const TEXTS = "louah-textes-__TX_VERSION__";  // textes : ne changent que si les textes changent
+// build.sh remplace les deux valeurs ci-dessous à chaque construction.
+const SHELL = "louah-app-__VERSION__";   // page, manifeste, icônes : changent à chaque version
+// Textes : un seul cache. Chaque fichier porte l’empreinte de son contenu dans son nom (s00.1a2b3c4d.json) :
+// un texte inchangé n’est jamais retéléchargé, et une page ne peut pas lire les textes d’une autre version.
+const TEXTS = "louah-textes";
 const FONTS = "louah-polices-1";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-180.png"];
 const TEXT_FILES = __TX_FILES__;
@@ -39,6 +41,9 @@ self.addEventListener("activate", e => {
   e.waitUntil((async () => {
     const keep = [SHELL, TEXTS, FONTS];
     for (const k of await caches.keys()) if (k.startsWith("louah") && !keep.includes(k)) await caches.delete(k);
+    // Fichiers de textes d’anciennes versions : retirés
+    const c = await caches.open(TEXTS), wanted = new Set(TEXT_FILES.map(f => new URL("textes/" + f, self.registration.scope).href));
+    for (const req of await c.keys()) if (!wanted.has(req.url)) await c.delete(req);
     await self.clients.claim();
   })());
   // Sans bloquer l’ouverture : polices et textes.

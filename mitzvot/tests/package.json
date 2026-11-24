@@ -1,0 +1,11 @@
+{
+  "name": "louah-hamitsvot-tests",
+  "private": true,
+  "description": "Vérifications du calcul de Louah HaMitsvot",
+  "scripts": {
+    "test": "node verifier.js && TZ=UTC node hebcal.mjs"
+  },
+  "devDependencies": {
+    "@hebcal/core": "6.16.1"
+  }
+}

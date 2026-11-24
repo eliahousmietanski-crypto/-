@@ -4,7 +4,7 @@
 const fs = require("fs"), path = require("path"), vm = require("vm");
 const dir = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(dir, "index.html"), "utf8");
-const js = html.split("<script>")[1].split("</script>")[0];
+const js = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).find(c => c.includes("const M613"));   // script principal
 const ctx = { Intl, Date, Math, console, Object, JSON, Map, Set, String };
 vm.createContext(ctx);
 vm.runInContext(js.replace(/if \(typeof document[\s\S]*$/, "") + ";this.buildYear=buildYear;this.buckets=buckets;this.MZ=MZ;this.TX_META=TX_META;", ctx);
@@ -19,6 +19,10 @@ for (const Y of [2026, 2027, 2028, 2029])
     }
   }
 const files = new Set(fs.readdirSync(path.join(dir, "textes")));
-const missing = Object.entries(ctx.TX_META.chunk).filter(([, c]) => !files.has(`s${String(c).padStart(2, "0")}.json`)).map(([id]) => id);
+// chaque mitsva a son fichier de références, présent sur le disque, avec la bonne empreinte
+const crypto = require("crypto");
+const sha = f => crypto.createHash("sha256").update(fs.readFileSync(path.join(dir, "textes", f))).digest("hex").slice(0, 8);
+const missing = Object.entries(ctx.TX_META.chunk).filter(([, c]) => { const f = ctx.TX_META.files["s" + String(c).padStart(2, "0")]; return !f || !files.has(f); }).map(([id]) => id);
+for (const f of Object.values(ctx.TX_META.files)) if (!files.has(f) || f.split(".")[1] !== sha(f)) { console.log("Empreinte fausse ou fichier absent :", f); missing.push(f); }
 console.log(`${n} jours vérifiés, ${bad} écart(s) ; ${missing.length} mitsva(s) sans fichier de textes`);
 process.exit(bad || missing.length ? 1 : 0);

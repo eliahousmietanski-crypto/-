@@ -18,7 +18,8 @@ mkdir -p "$OUT"
     '<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>' \
     '</head>' '<body>'
   cat ../index.html
-  printf '%s\n' '<script>if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {})); }</script>' \
+  # Service worker ; quand une nouvelle version prend la main, l’application propose de recharger.
+  printf '%s\n' '<script>if ("serviceWorker" in navigator) { const had = !!navigator.serviceWorker.controller; navigator.serviceWorker.addEventListener("controllerchange", () => { if (had && window.louahUpdate) window.louahUpdate(); }); window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {})); }</script>' \
     '</body>' '</html>'
 } > "$OUT/index.html"
 cp manifest.webmanifest icon-180.png icon-192.png icon-512.png "$OUT/"
@@ -26,7 +27,6 @@ cp manifest.webmanifest icon-180.png icon-192.png icon-512.png "$OUT/"
 rm -rf "$OUT/textes" && cp -r ../textes "$OUT/textes"
 # Service worker : numéros de version tirés du contenu, et liste des fichiers de textes
 VERSION=$(cat "$OUT/index.html" manifest.webmanifest | sha256sum | cut -c1-12)
-TX_VERSION=$(cat ../textes/*.json | sha256sum | cut -c1-12)
 TX_FILES=$(cd ../textes && ls *.json | sed 's/.*/"&"/' | paste -sd, -)
-sed -e "s/__VERSION__/$VERSION/" -e "s/__TX_VERSION__/$TX_VERSION/" -e "s/__TX_FILES__/[$TX_FILES]/" sw.js > "$OUT/sw.js"
+sed -e "s/__VERSION__/$VERSION/" -e "s/__TX_FILES__/[$TX_FILES]/" sw.js > "$OUT/sw.js"
 echo "Site construit dans $OUT"
