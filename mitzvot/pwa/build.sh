@@ -10,6 +10,7 @@ mkdir -p "$OUT"
     '<meta charset="utf-8">' \
     '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">' \
     '<meta name="theme-color" content="#1d4ea6">' \
+    '<meta name="description" content="Les 613 mitsvot pour chaque jour de l’année, avec le Choul‘han Aroukh, le Michné Torah et le Séfer Ha‘Hinoukh traduits.">' \
     '<link rel="manifest" href="manifest.webmanifest">' \
     '<link rel="icon" href="icon-192.png">' \
     '<link rel="apple-touch-icon" href="icon-180.png">' \
@@ -20,5 +21,12 @@ mkdir -p "$OUT"
   printf '%s\n' '<script>if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {})); }</script>' \
     '</body>' '</html>'
 } > "$OUT/index.html"
-cp manifest.webmanifest sw.js icon-180.png icon-192.png icon-512.png "$OUT/"
+cp manifest.webmanifest icon-180.png icon-192.png icon-512.png "$OUT/"
+# Textes chargés à la demande
+rm -rf "$OUT/textes" && cp -r ../textes "$OUT/textes"
+# Service worker : numéros de version tirés du contenu, et liste des fichiers de textes
+VERSION=$(cat "$OUT/index.html" manifest.webmanifest | sha256sum | cut -c1-12)
+TX_VERSION=$(cat ../textes/*.json | sha256sum | cut -c1-12)
+TX_FILES=$(cd ../textes && ls *.json | sed 's/.*/"&"/' | paste -sd, -)
+sed -e "s/__VERSION__/$VERSION/" -e "s/__TX_VERSION__/$TX_VERSION/" -e "s/__TX_FILES__/[$TX_FILES]/" sw.js > "$OUT/sw.js"
 echo "Site construit dans $OUT"

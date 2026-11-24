@@ -23,6 +23,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Vérifier le calcul des mitsvot
+        run: node mitzvot/tests/verifier.js
       - name: Construire le site
         run: bash mitzvot/pwa/build.sh "$GITHUB_WORKSPACE/_site"
       - uses: actions/configure-pages@v5
