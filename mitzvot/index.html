@@ -201,6 +201,9 @@ input, select { font: inherit; color: var(--ink); background: var(--bg); border:
 .pbar i { display: block; height: 100%; background: var(--ase); transition: width .2s; }
 .subh { margin: var(--s2) 0 0; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 700; }
 .empty { color: var(--muted); font-size: 0.92rem; margin: 0; }
+.hint { margin: 0; padding: var(--s2) var(--s3); border-radius: var(--r-md); background: var(--sunken); color: var(--muted); font-size: 0.9rem; }
+.hint button { border: 0; background: transparent; padding: 0; min-height: 0; color: var(--tekhelet); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.intodo { color: var(--ase); font-weight: 700; }
 
 /* Ligne de mitsva : case à cocher à gauche (si elle se coche), le texte, puis une flèche vers sa fiche */
 ul.mz { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; background: var(--surface); }
@@ -1790,7 +1793,8 @@ if (typeof document !== "undefined") (function () {
   // i : { id, note, susp, rab, rabWhy } ; opt : { ck: case à cocher, sub: ligne d’information }
   function row(i, opt = {}) {
     const m = MZ[i.id], t = i.rab ? "R" : m.t;
-    const note = opt.sub != null ? opt.sub : [i.note, i.rab ? (i.rabWhy || "Ce jour supplémentaire est d’institution rabbinique") : "", !i.note && opt.daily ? STATIC_NOTES[i.id] : ""].filter(Boolean).join(" · ");
+    let note = opt.sub != null ? opt.sub : [i.note, i.rab ? (i.rabWhy || "Ce jour supplémentaire est d’institution rabbinique") : "", !i.note && opt.daily ? STATIC_NOTES[i.id] : ""].filter(Boolean).join(" · ");
+    if (opt.todo && opt.todo.has(i.id)) { note = `<span class="intodo">✓ À cocher dans « À faire », plus haut</span>${note ? " · " + esc(note) : ""}`; opt = Object.assign({}, opt, { subHtml: true }); };
     const ck = opt.ck && !i.susp;
     return `<li class="${i.susp ? "susp" : ""}${ck ? " hasck" : ""}" data-id="${i.id}">${ck ? `<label class="ck"><input type="checkbox" data-ck="${i.id}" aria-label="Accomplie : ${esc(m.fr)}"><span></span></label>` : ""}<button class="mzb" data-open="${i.id}"><span class="t"><span class="t1">${esc(m.fr)}</span><span class="t2">${he(esc(m.he))}</span>${note ? `<span class="t3">${opt.subHtml ? note : esc(note)}</span>` : ""}</span>${opt.tag ? `<span class="tag ${t}">${m.t === "R" ? "Sages" : (t === "A" ? "Positive " : "Interdit ") + m.num}</span>` : ""}<span class="chev" aria-hidden="true">›</span></button></li>`;
   }
@@ -1864,7 +1868,7 @@ if (typeof document !== "undefined") (function () {
   function groupBody(k) {
     const B = DAYB, desc = GROUPS.find(g => g[0] === k)[2];
     let body = `<p class="gdesc">${desc}</p>`;
-    const part = (title, list) => list.length ? `<h4 class="subh">${title} · ${list.length}</h4>${ul(list, { tag: true })}` : "";
+    const part = (title, list) => list.length ? `<h4 class="subh">${title} · ${list.length}</h4>${ul(list, { tag: true, todo: CHECKABLE })}` : "";
     if (k === "nonapp") {
       body += Object.entries(X_LABEL).map(([r, lab]) => { const g = B[k].filter(i => MZ[i.id].x === r); return g.length ? `<h4 class="subh">${lab} · ${g.length}</h4>${ul(g, { tag: true })}` : ""; }).join("");
     } else {
@@ -1893,6 +1897,8 @@ if (typeof document !== "undefined") (function () {
     const specIds = new Set(spec.map(i => i.id));
     const daily = DAILY.map(id => B.perm.find(i => i.id === id) || B.cond.find(i => i.id === id)).filter(i => i && !specIds.has(i.id));
     const todo = [...sA, ...sR];
+    const dailyIds = new Set(daily.map(i => i.id));
+    const otherPerm = B.perm.filter(i => MZ[i.id].t === "A" && !dailyIds.has(i.id)).length;
     CHECKABLE = new Set([...todo.filter(i => !i.susp), ...daily].map(i => i.id));
     const isToday = x.t === TODAY.t, thisYear = new Date(TODAY.t).getUTCFullYear() === S.year;
     const nA = sA.filter(i => !i.susp).length, nL = sL.filter(i => !i.susp).length;
@@ -1920,6 +1926,7 @@ if (typeof document !== "undefined") (function () {
         <div class="secthead"><h3 id="todoH">À faire</h3><span class="prog" id="prog" aria-live="polite"></span></div>
         ${todo.length ? `<h4 class="subh">Propres à ce jour</h4>${ul(todo, { ck: true })}` : ""}
         ${daily.length ? `<h4 class="subh">Chaque jour</h4>${ul(daily, { ck: true, daily: true })}` : ""}
+        ${otherPerm ? `<p class="hint">Ici, seulement les gestes à faire à un moment précis. Les ${otherPerm} autres mitsvot positives permanentes (aimer Dieu, aimer son prochain, honorer ses parents…) s’appliquent en continu et ne se cochent pas. <button type="button" id="seePerm">Les voir</button></p>` : ""}
         ${!todo.length && !daily.length ? `<p class="empty">Rien de particulier à cocher aujourd’hui.</p>` : ""}
       </section>
       ${sL.length ? `<section class="sect" aria-labelledby="avoidH"><div class="secthead"><h3 id="avoidH">À éviter aujourd’hui</h3></div>${ul(sL)}</section>` : ""}
@@ -1940,6 +1947,7 @@ if (typeof document !== "undefined") (function () {
     $("#wPrev").onclick = () => step(-7);
     $("#wNext").onclick = () => step(7);
     const tb = $("#goToday"); if (tb) tb.onclick = () => selectDay(TODAY.t, { show: true });
+    const sp = $("#seePerm"); if (sp) sp.onclick = () => { const d = dayEl.querySelector("details.b-perm"); if (d) { d.open = true; d.querySelector("summary").scrollIntoView({ block: "start" }); d.querySelector("summary").focus({ preventScroll: true }); } };
     Track.load(tSel).then(set => {
       if (S.sel !== tSel) return;
       dayEl.querySelectorAll("input[data-ck]").forEach(cb => { cb.checked = set.has(cb.dataset.ck); });
